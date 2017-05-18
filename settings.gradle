@@ -1,0 +1,12 @@
+rootProject.name = 'shell-plugin'
+include 'common', 'package', 'test', 'all'
+
+
+rootProject.children.each { childProject ->
+
+	if (childProject.name == 'all')
+		childProject.name = 'shell'
+	else if (childProject.name != 'common') {
+		childProject.name = "shell-${childProject.name}"
+	}
+}

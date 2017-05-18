@@ -1,0 +1,52 @@
+
+task wrapper(type: Wrapper) { gradleVersion = '3.4.1' }
+
+allprojects {
+
+	group 'net.tetrakoopa.gradle.plugin.shell'
+
+	repositories {
+		mavenCentral()
+		mavenLocal()
+		maven { url 'https://jitpack.io' }
+	}
+}
+
+subprojects {
+
+	apply plugin: 'maven'
+	apply plugin: 'groovy'
+
+
+	if (project.plugins.hasPlugin("org.gradle.java")) {
+
+		dependencies {
+			compile "com.github.martin-der.mdu4j:util:${property('version.martin-der.mdu4j')}"
+		}
+
+		dependencies {
+			compile gradleApi()
+			compile localGroovy()
+			testCompile 'junit:junit:4.12'
+		}
+
+		install {
+			repositories.mavenInstaller {
+				pom.project {
+					licenses {
+						license {
+							name 'The Apache Software License, Version 2.0'
+							url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+							distribution 'repo'
+						}
+					}
+				}
+			}
+		}
+
+		sourceCompatibility = "${property('sourceCompatibility')}"
+		targetCompatibility = "${property('targetCompatibility')}"
+	}
+
+}
+
