@@ -41,7 +41,7 @@ class ShellTestTask extends DefaultTask {
 		}
 		logger.info("  Tested '${script.path}' : $execResult")
 		if(execResult.exitValue != 0) {
-			shell_test.result.failedTests << "${script.path}"
+			shell_test.result.failedTests << this
 		}
 	}
 
@@ -52,55 +52,10 @@ class ShellTestTask extends DefaultTask {
 }
 
 
-// -----------------------------------------------
-
-/*
-def homeutilProjectDir = "${project.projectDir}/.."
-
-def trimStart = {
-	def start = "${project.projectDir}"
-	it.startsWith(start) ? it.substring(start.size()) : it
-}
-
-def sourceDir = 'script'
-
-def testsCount = 0
-def failedTests = []
-
-
-def sourceDirectory = file("$sourceDir")
-sourceDirectory.eachFileRecurse(groovy.io.FileType.FILES) {
-	script ->
-		def isTest = script.name.endsWith('.sh') && !script.name.equals("common.sh") && !script.name.equals("runner.sh")
-		if(isTest) {
-
-			testsCount++
-
-			def trimmedStart = "${project.projectDir}/script/"
-			def filename = "$script".startsWith(trimmedStart) ? "$script".substring(trimmedStart.size()) : "$file"
-
-			task "performTest_$filename" (type: Exec) {
-				workingDir homeutilProjectDir
-				commandLine 'bash', "$script"
-				ignoreExitValue true
-				standardOutput new LogOutputStream(logger, LogLevel.INFO)
-				errorOutput    new LogOutputStream(logger, LogLevel.ERROR)
-				doLast {
-					logger.info("[Tested '$filename' :  $execResult]")
-					if(execResult.exitValue != 0) {
-						failedTests << "$filename"
-					}
-				}
-			}
-
-			allTests.dependsOn("performTest_$filename")
-		}
-}*/
-
 class LogOutputStream extends ByteArrayOutputStream {
 
-	private final Logger logger;
-	private final LogLevel level;
+	private final Logger logger
+	private final LogLevel level
 
 	LogOutputStream(Logger logger, LogLevel level) {
 		this.logger = logger

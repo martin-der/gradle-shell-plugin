@@ -46,7 +46,11 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 			def allTestsTask = project.task(ALL_ALL_TESTS_TASK_NAME) { }
 
 			project.shell_test.testScripts.each() { file ->
-				def testTask = project.task("test_${file.name}", type:ShellTestTask) {
+
+				def trimmedStart = "${project.projectDir}/"
+				def filename = file.absolutePath.startsWith(trimmedStart) ? file.absolutePath.substring(trimmedStart.size()) : file.absolutePath
+
+				def testTask = project.task("test_${filename}", type:ShellTestTask) {
 					script = file
 					if (project.shell_test.workingDir != null) workingDir = project.shell_test.workingDir
 				}
