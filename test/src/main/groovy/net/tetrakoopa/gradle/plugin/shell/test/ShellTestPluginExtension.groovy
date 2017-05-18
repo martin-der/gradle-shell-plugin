@@ -23,16 +23,22 @@ class ShellTestPluginExtension {
 	class TestSuite {
 		String shunit2Home
 		String executable
+		String runnerInclude
+	}
+
+	class ReturnCode {
+		String executionError
+		String assertionFailure
 	}
 
 	def environmentVariables = [:]
 
 	final TestSuite testSuite = new TestSuite()
+	final ReturnCode returnCode = new ReturnCode()
+
 	ConfigurableFileCollection testScripts
 	File workingDir
 	final Result result = new Result()
-
-	int assertionFailureErrorCode
 
 	ConfigurableFileCollection from(Object... paths) {
 		if (testScripts == null)
@@ -48,6 +54,7 @@ class ShellTestPluginExtension {
 	}
 
 	def testSuite(Closure closure) { ConfigureUtil.configure(closure, testSuite) }
+	def returnCode(Closure closure) { ConfigureUtil.configure(closure, returnCode) }
 	def result(Closure closure) { ConfigureUtil.configure(closure, result) }
 }
 
