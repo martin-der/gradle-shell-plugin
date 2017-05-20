@@ -39,6 +39,7 @@ class ShellTestPluginExtension {
 	ConfigurableFileCollection testScripts
 	File workingDir
 	final Result result = new Result()
+	File resultsDir
 
 	ConfigurableFileCollection from(Object... paths) {
 		if (testScripts == null)

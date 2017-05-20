@@ -1,6 +1,7 @@
 package net.tetrakoopa.gradle.plugin.shell.test.task
 
 import net.tetrakoopa.gradle.plugin.shell.test.ShellTestPluginExtension
+import net.tetrakoopa.gradle.plugin.shell.test.ShellTestPlugin
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
@@ -12,6 +13,8 @@ class ShellTestTask extends DefaultTask {
 
 	//@Input
 	File script
+
+	String testName
 
 	String workingDir = "."
 
@@ -25,15 +28,22 @@ class ShellTestTask extends DefaultTask {
 		ShellTestPluginExtension shell_test = project.shell_test
 		logger.info("Testing '${script.name}'")
 		Project topProject = project.getTopProject()
-		File toolsResourcesDir = topProject.file("${topProject.buildDir}/net.tetrakoopa.shell-test/tool")
 
 		shell_test.result.executedTestsCount++
 
 		if (workingDir==null) workingDir = project.file(".").absolutePath
 
+		def environmentVariables = [:]
+		environmentVariables << project.shell_test.environmentVariables
+		environmentVariables.put(ShellTestPlugin.ENVVAR_TEST_RESULTS_DIRECTORY,
+			testName != null
+				? project.shell_test.resultsDir.absolutePath+"/"+testName
+				: project.shell_test.resultsDir.absolutePath
+		)
+
 		def execResult = project.exec() {
 			it.workingDir = workingDir
-			it.environment project.shell_test.environmentVariables
+			it.environment environmentVariables
 			commandLine 'bash', "${script.path}"
 			ignoreExitValue true
 			standardOutput new LogOutputStream(logger, outputRedirect.standard)

@@ -15,11 +15,14 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 	public static final String ALL_TESTS_RESULT_TASK_NAME = "shell-checktests"
 	public static final String ALL_ALL_TESTS_TASK_NAME = "shell-test"
 
+	public static final String ENVVAR_TEST_RESULTS_DIRECTORY = "MDU_SHELLTEST_TEST_RESULTS_DIRECTORY"
+
 	private void preprareEnvironment(Project project) {
 		project.shell_test.environmentVariables['MDU_SHELLTEST_TESTUNIT_SHUNIT2_EXEC'] = project.shell_test.testSuite.executable
 		project.shell_test.environmentVariables['MDU_SHELLTEST_PROJECT_DIRECTORY'] = project.projectDir
 		project.shell_test.environmentVariables['MDU_SHELLTEST_TEST_EXECUTION_ERROR_EXIT_CODE'] = project.shell_test.returnCode.executionError
 		project.shell_test.environmentVariables['MDU_SHELLTEST_TEST_ASSERTION_FAILURE_EXIT_CODE'] = project.shell_test.returnCode.assertionFailure
+		project.shell_test.environmentVariables['MDU_SHELLTEST_RESULTS_DIRECTORY'] = project.shell_test.resultsDir
 		project.shell_test.environmentVariables['MDU_SHELLTEST_TESTUNIT_RUNNER_INCLUDE'] = project.shell_test.testSuite.runnerInclude
 
 		//project.shell_test.environmentVariables['MDU_SHELLTEST_TESTUNIT_SOURCE_DIRECTORY'] = project.shell_test.testSuite.executable
@@ -36,6 +39,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 				executionError = 23
 				assertionFailure = 24
 			}
+			resultsDir = new File(project.buildDir, "test-results")
 			testSuite {
 				shunit2Home = new File(toolResourcesDir, "shunit2-2.0.3")
 				executable = new File(project.shell_test.testSuite.shunit2Home, "shunit2")
@@ -58,9 +62,10 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 			project.shell_test.testScripts.each() { file ->
 
 				def trimmedStart = "${project.projectDir}/"
-				def filename = file.absolutePath.startsWith(trimmedStart) ? file.absolutePath.substring(trimmedStart.size()) : file.absolutePath
+				def testname = file.absolutePath.startsWith(trimmedStart) ? file.absolutePath.substring(trimmedStart.size()) : file.absolutePath
 
-				def testTask = project.task("test_${filename}", type:ShellTestTask) {
+				def testTask = project.task("test_${testname}", type:ShellTestTask) {
+					testName = testname
 					script = file
 					if (project.shell_test.workingDir != null) workingDir = project.shell_test.workingDir
 				}
