@@ -1,9 +1,11 @@
 package net.tetrakoopa.gradle.plugin.shell.common
 
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.bundling.Zip
 import net.tetrakoopa.mdu4j.util.IOUtil
+import org.gradle.tooling.model.build.GradleEnvironment
 
 abstract class AbstractShellProjectPlugin implements Plugin<Project> {
 
@@ -20,13 +22,16 @@ abstract class AbstractShellProjectPlugin implements Plugin<Project> {
 		File resourcesDir = topProject.file("${topProject.buildDir}/${pluginId}/${name}")
 		File resourcesZip = topProject.file("${topProject.buildDir}/${pluginId}/${name}.zip")
 		resourcesDir.mkdirs()
-		InputStream toolInput = getClass().getClassLoader().getResourceAsStream("${pluginId}.${name}.zip")
+		String pluginBundledResource = "${pluginId}.${name}.zip"
+		InputStream toolInput = getClass().getClassLoader().getResourceAsStream(pluginBundledResource)
+		if (toolInput == null) throw new NullPointerException("No such resource '${pluginBundledResource}'")
 		IOUtil.copy((InputStream)toolInput, new FileOutputStream(resourcesZip))
 
 		topProject.copy {
-			from topProject.zipTree(resourcesZip)
+			from topProject.zipTree(new FileInputStream(toolInput))
 			into "${resourcesDir}"
 		}
+		resourcesZip.delete()
 
 		return resourcesDir
 	}
