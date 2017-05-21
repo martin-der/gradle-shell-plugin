@@ -1,0 +1,16 @@
+language: bash
+
+sudo: required
+
+jdk:
+  - oraclejdk8
+
+gradle:
+  - oraclejdk8
+
+branches:
+    except:
+        - feature/WIP_.*
+
+script:
+    - ./gradlew test
