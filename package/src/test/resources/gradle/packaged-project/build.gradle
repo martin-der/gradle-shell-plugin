@@ -1,0 +1,33 @@
+//apply plugin: 'maven'
+//apply plugin: 'maven-publish'
+//apply plugin: 'java'
+apply plugin: 'net.tetrakoopa.shell-package'
+
+group = 'testGrp'
+version = '42'
+
+repositories {
+	mavenLocal()
+}
+
+//publishing {
+//	publications {
+//		mavenStuff(MavenPublication) {
+//			artifact file("${projectDir}/../inputfiles/artifact.war")
+//		}
+//	}
+//}
+
+shell_package {
+	from project.fileTree("src").include('*.sh', '*.py', 'README.md')
+
+//	installer {
+//		readme.location = 'README.md'
+//		userScript {
+//			script {
+//				location = "home-init.sh"
+//			}
+//			question = "Do you want to init home (i.e. run 'home-init')?"
+//		}
+//	}
+}

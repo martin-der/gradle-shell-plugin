@@ -17,6 +17,12 @@ subprojects {
 	apply plugin: 'maven'
 	apply plugin: 'groovy'
 
+	dependencies {
+		testCompile('org.spockframework:spock-core:1.1-groovy-2.4') {
+			exclude group: 'org.codehaus.groovy', module: 'groovy-all'
+		}
+	}
+
 
 	if (project.plugins.hasPlugin("org.gradle.java")) {
 
