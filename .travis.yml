@@ -5,9 +5,6 @@ sudo: required
 jdk:
   - oraclejdk8
 
-before_script:
-    - gradle wrapper
-
 branches:
     except:
         - feature/WIP_.*
