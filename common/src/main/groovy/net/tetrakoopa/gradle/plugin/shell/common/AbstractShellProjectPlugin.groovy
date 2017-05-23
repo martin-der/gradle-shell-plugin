@@ -28,7 +28,7 @@ abstract class AbstractShellProjectPlugin implements Plugin<Project> {
 		IOUtil.copy((InputStream)toolInput, new FileOutputStream(resourcesZip))
 
 		topProject.copy {
-			from topProject.zipTree(new FileInputStream(toolInput))
+			from topProject.zipTree(resourcesZip)
 			into "${resourcesDir}"
 		}
 		resourcesZip.delete()
