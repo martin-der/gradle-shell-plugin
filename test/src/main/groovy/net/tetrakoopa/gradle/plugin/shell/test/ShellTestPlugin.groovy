@@ -12,6 +12,8 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 
 	public static final String ID = "net.tetrakoopa.shell-test"
 
+	public static final String LOGGING_PREFIX = "Shell-Test : "
+
 	public static final String ALL_TESTS_RESULT_TASK_NAME = "shell-checktests"
 	public static final String ALL_ALL_TESTS_TASK_NAME = "shell-test"
 
@@ -66,58 +68,68 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 		prepareEnvironment(project)
 
 		project.afterEvaluate {
+			addTasks(project)
+		}
 
-			if (project.shell_test.returnCode.executionError == 0 || project.shell_test.returnCode.assertionFailure == 0) throw new ShellTestException("returnCode.executionError and returnCode.executionError cannot be '0' ( since 0 is the success return code )")
 
-			def resultsCheckTask = project.task(ALL_TESTS_RESULT_TASK_NAME, type:CheckTestsTesultsTask) { }
-			def allTestsTask = project.task(ALL_ALL_TESTS_TASK_NAME) { }
+	}
 
-			String projectStart = "${project.projectDir}/"
-			String trimmedStart = projectStart
-			int greatestCommonPrefixLength = 0
+	private void addTasks(Project project) {
+		if (project.shell_test.returnCode.executionError == 0 || project.shell_test.returnCode.assertionFailure == 0) throw new ShellTestException("returnCode.executionError and returnCode.executionError cannot be '0' ( since 0 is the success return code )")
 
-			if (project.shell_test.naming.removeCommonPrefix && project.shell_test.testScripts.size()>1) {
-				String greatestCommonPrefix = null
-				project.shell_test.testScripts.find() { file ->
-					String filename = file.absolutePath
-					if (! filename.startsWith(projectStart) ) {
-						greatestCommonPrefixLength = 0
-						return true
-					}
-					filename = filename.substring(projectStart.size())
-					if (greatestCommonPrefix == null) {
-						greatestCommonPrefix = filename
-						greatestCommonPrefixLength = greatestCommonPrefix.length()
-					} else {
-						int length = stringsGreatestCommonPrefixLength (greatestCommonPrefix, filename)
-						if (length < greatestCommonPrefixLength) {
-							greatestCommonPrefixLength = length
-							greatestCommonPrefix = filename.substring(0, length)
-						}
-					}
-					return false
+		def resultsCheckTask = project.task(ALL_TESTS_RESULT_TASK_NAME, type:CheckTestsTesultsTask) { }
+		def allTestsTask = project.task(ALL_ALL_TESTS_TASK_NAME) { }
+
+		if (project.shell_test.testScripts == null || project.shell_test.testScripts.size()==0) {
+			project.getLogger().warn(LOGGING_PREFIX+"No test script found")
+			return
+		}
+
+		String projectStart = "${project.projectDir}/"
+		String trimmedStart = projectStart
+		int greatestCommonPrefixLength = 0
+
+		if (project.shell_test.naming.removeCommonPrefix && project.shell_test.testScripts.size()>1) {
+			String greatestCommonPrefix = null
+			project.shell_test.testScripts.find() { file ->
+				String filename = file.absolutePath
+				if (! filename.startsWith(projectStart) ) {
+					greatestCommonPrefixLength = 0
+					return true
 				}
-				if (greatestCommonPrefixLength>0)
-					trimmedStart = projectStart + greatestCommonPrefix
-			} else {
-				trimmedStart = projectStart
-			}
-
-			project.shell_test.testScripts.each() { file ->
-
-				String testname = file.absolutePath.startsWith(trimmedStart) ? file.absolutePath.substring(trimmedStart.size()) : file.absolutePath
-
-				if (project.shell_test.naming.prefix)
-					testname = project.shell_test.naming.prefix + testname
-
-				def testTask = project.task(testname, type:ShellTestTask) {
-					testName = testname
-					script = file
-					if (project.shell_test.workingDir != null) workingDir = project.shell_test.workingDir
+				filename = filename.substring(projectStart.size())
+				if (greatestCommonPrefix == null) {
+					greatestCommonPrefix = filename
+					greatestCommonPrefixLength = greatestCommonPrefix.length()
+				} else {
+					int length = stringsGreatestCommonPrefixLength (greatestCommonPrefix, filename)
+					if (length < greatestCommonPrefixLength) {
+						greatestCommonPrefixLength = length
+						greatestCommonPrefix = filename.substring(0, length)
+					}
 				}
-				allTestsTask.dependsOn testTask
-				testTask.finalizedBy resultsCheckTask
+				return false
 			}
+			if (greatestCommonPrefixLength>0)
+				trimmedStart = projectStart + greatestCommonPrefix
+		} else {
+			trimmedStart = projectStart
+		}
+
+		project.shell_test.testScripts.each() { file ->
+
+			String testname = file.absolutePath.startsWith(trimmedStart) ? file.absolutePath.substring(trimmedStart.size()) : file.absolutePath
+
+			if (project.shell_test.naming.prefix)
+				testname = project.shell_test.naming.prefix + testname
+
+			def testTask = project.task(testname, type:ShellTestTask) {
+				testName = testname
+				script = file
+				if (project.shell_test.workingDir != null) workingDir = project.shell_test.workingDir
+			}
+			allTestsTask.dependsOn testTask
+			testTask.finalizedBy resultsCheckTask
 		}
 
 	}
