@@ -50,8 +50,8 @@ subprojects {
 			}
 		}
 
-		sourceCompatibility = "${property('sourceCompatibility')}"
-		targetCompatibility = "${property('targetCompatibility')}"
+		sourceCompatibility = "1.8" //"${property('sourceCompatibility')}"
+		targetCompatibility = "1.7" //"${property('targetCompatibility')}"
 	}
 
 }
