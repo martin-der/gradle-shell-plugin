@@ -31,10 +31,16 @@ class ShellTestPluginExtension {
 		String assertionFailure
 	}
 
+	class Naming {
+		boolean removeCommonPrefix
+		String prefix
+	}
+
 	def environmentVariables = [:]
 
 	final TestSuite testSuite = new TestSuite()
 	final ReturnCode returnCode = new ReturnCode()
+	final Naming naming = new Naming()
 
 	ConfigurableFileCollection testScripts
 	File workingDir
@@ -56,6 +62,7 @@ class ShellTestPluginExtension {
 
 	def testSuite(Closure closure) { ConfigureUtil.configure(closure, testSuite) }
 	def returnCode(Closure closure) { ConfigureUtil.configure(closure, returnCode) }
+	def naming(Closure closure) { ConfigureUtil.configure(closure, naming) }
 	def result(Closure closure) { ConfigureUtil.configure(closure, result) }
 }
 

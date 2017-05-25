@@ -17,7 +17,16 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 
 	public static final String ENVVAR_TEST_RESULTS_DIRECTORY = "MDU_SHELLTEST_TEST_RESULTS_DIRECTORY"
 
-	private void preprareEnvironment(Project project) {
+	private int stringsGreatestCommonPrefixLength(String a, String b) {
+		int minLength = Math.min(a.length(), b.length())
+		for (int i = 0; i < minLength; i++) {
+			if (a.charAt(i) != b.charAt(i)) {
+				return i
+			}
+		}
+		return minLength
+	}
+	private void prepareEnvironment(Project project) {
 		project.shell_test.environmentVariables['MDU_SHELLTEST_TESTUNIT_SHUNIT2_EXEC'] = project.shell_test.testSuite.executable
 		project.shell_test.environmentVariables['MDU_SHELLTEST_PROJECT_DIRECTORY'] = project.projectDir
 		project.shell_test.environmentVariables['MDU_SHELLTEST_TEST_EXECUTION_ERROR_EXIT_CODE'] = project.shell_test.returnCode.executionError
@@ -45,12 +54,16 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 				executable = new File(project.shell_test.testSuite.shunit2Home, "shunit2")
 				runnerInclude = new File(toolResourcesDir, "test_runner.sh")
 			}
+			naming {
+				removeCommonPrefix = true
+				prefix = "test_"
+			}
 		}
 
 		project.ext.ShellTestTask = ShellTestTask
 		project.ext.AllShellTestsTask = CheckTestsTesultsTask
 
-		preprareEnvironment(project)
+		prepareEnvironment(project)
 
 		project.afterEvaluate {
 
@@ -59,12 +72,45 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 			def resultsCheckTask = project.task(ALL_TESTS_RESULT_TASK_NAME, type:CheckTestsTesultsTask) { }
 			def allTestsTask = project.task(ALL_ALL_TESTS_TASK_NAME) { }
 
+			String projectStart = "${project.projectDir}/"
+			String trimmedStart = projectStart
+			int greatestCommonPrefixLength = 0
+
+			if (project.shell_test.naming.removeCommonPrefix && project.shell_test.testScripts.size()>1) {
+				String greatestCommonPrefix = null
+				project.shell_test.testScripts.find() { file ->
+					String filename = file.absolutePath
+					if (! filename.startsWith(projectStart) ) {
+						greatestCommonPrefixLength = 0
+						return true
+					}
+					filename = filename.substring(projectStart.size())
+					if (greatestCommonPrefix == null) {
+						greatestCommonPrefix = filename
+						greatestCommonPrefixLength = greatestCommonPrefix.length()
+					} else {
+						int length = stringsGreatestCommonPrefixLength (greatestCommonPrefix, filename)
+						if (length < greatestCommonPrefixLength) {
+							greatestCommonPrefixLength = length
+							greatestCommonPrefix = filename.substring(0, length)
+						}
+					}
+					return false
+				}
+				if (greatestCommonPrefixLength>0)
+					trimmedStart = projectStart + greatestCommonPrefix
+			} else {
+				trimmedStart = projectStart
+			}
+
 			project.shell_test.testScripts.each() { file ->
 
-				def trimmedStart = "${project.projectDir}/"
-				def testname = file.absolutePath.startsWith(trimmedStart) ? file.absolutePath.substring(trimmedStart.size()) : file.absolutePath
+				String testname = file.absolutePath.startsWith(trimmedStart) ? file.absolutePath.substring(trimmedStart.size()) : file.absolutePath
 
-				def testTask = project.task("test_${testname}", type:ShellTestTask) {
+				if (project.shell_test.naming.prefix)
+					testname = project.shell_test.naming.prefix + testname
+
+				def testTask = project.task(testname, type:ShellTestTask) {
 					testName = testname
 					script = file
 					if (project.shell_test.workingDir != null) workingDir = project.shell_test.workingDir
