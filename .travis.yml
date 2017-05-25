@@ -1,6 +1,4 @@
-language: bash
-
-sudo: required
+language: groovy
 
 jdk:
   - oraclejdk8
@@ -10,4 +8,4 @@ branches:
         - feature/WIP_.*
 
 script:
-    - ./gradlew test
+    - ./gradlew -q test
