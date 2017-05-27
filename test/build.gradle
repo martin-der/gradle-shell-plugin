@@ -2,8 +2,8 @@
 version '0.1-SNAPSHOT'
 
 compileGroovy.doFirst {
-	sourceCompatibility = "1.8" //"${property('sourceCompatibility')}"
-	targetCompatibility = "1.7" //"${property('targetCompatibility')}"
+	sourceCompatibility = "${project.property('sourceCompatibility')}"
+	targetCompatibility = "${project.property('targetCompatibility')}"
 }
 
 dependencies {

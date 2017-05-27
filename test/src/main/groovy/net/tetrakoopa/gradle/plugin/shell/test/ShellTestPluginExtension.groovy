@@ -16,8 +16,13 @@ class ShellTestPluginExtension {
 	}
 
 	class Result {
-		int executedTestsCount
-		def failedTests = []
+		class Check {
+			int executedCount
+			def failed = []
+		}
+		final Check check = new Check()
+		int executedCount
+		def failed = []
 	}
 
 	class TestSuite {
@@ -31,6 +36,17 @@ class ShellTestPluginExtension {
 		String assertionFailure
 	}
 
+	class Check {
+		class Naming {
+			String prefix
+		}
+		boolean enabled
+		final Naming naming = new Naming()
+		File resultsDir
+		boolean thowErrorOnBadResult
+		def naming(Closure closure) { ConfigureUtil.configure(closure, naming) }
+	}
+
 	class Naming {
 		boolean removeCommonPrefix
 		String prefix
@@ -41,11 +57,22 @@ class ShellTestPluginExtension {
 	final TestSuite testSuite = new TestSuite()
 	final ReturnCode returnCode = new ReturnCode()
 	final Naming naming = new Naming()
+	final Check check = new Check()
 
 	ConfigurableFileCollection testScripts
 	File workingDir
 	final Result result = new Result()
 	File resultsDir
+	boolean thowErrorOnBadResult
+	ConfigurableFileCollection scripts
+
+	ConfigurableFileCollection scriptFrom(Object... paths) {
+		if (scripts == null)
+			scripts = project.files(paths)
+		else
+			scripts.from(paths)
+		return scripts
+	}
 
 	ConfigurableFileCollection from(Object... paths) {
 		if (testScripts == null)
@@ -63,6 +90,7 @@ class ShellTestPluginExtension {
 	def testSuite(Closure closure) { ConfigureUtil.configure(closure, testSuite) }
 	def returnCode(Closure closure) { ConfigureUtil.configure(closure, returnCode) }
 	def naming(Closure closure) { ConfigureUtil.configure(closure, naming) }
+	def check(Closure closure) { ConfigureUtil.configure(closure, check) }
 	def result(Closure closure) { ConfigureUtil.configure(closure, result) }
 }
 

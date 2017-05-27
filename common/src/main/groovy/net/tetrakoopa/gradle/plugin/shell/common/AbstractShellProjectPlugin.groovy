@@ -7,6 +7,10 @@ import org.gradle.api.tasks.bundling.Zip
 import net.tetrakoopa.mdu4j.util.IOUtil
 import org.gradle.tooling.model.build.GradleEnvironment
 
+import java.nio.file.Files
+import java.util.regex.Pattern
+import java.util.stream.Stream
+
 abstract class AbstractShellProjectPlugin implements Plugin<Project> {
 
 	protected getTopProject(Project project) {
@@ -21,6 +25,12 @@ abstract class AbstractShellProjectPlugin implements Plugin<Project> {
 		Project topProject = getTopProject(project)
 		File resourcesDir = topProject.file("${topProject.buildDir}/${pluginId}/${name}")
 		File resourcesZip = topProject.file("${topProject.buildDir}/${pluginId}/${name}.zip")
+
+		File okFile = new File(resourcesDir, ".unpack-ok");
+		if (okFile.exists()) {
+			return resourcesDir
+		}
+
 		resourcesDir.mkdirs()
 		String pluginBundledResource = "${pluginId}.${name}.zip"
 		InputStream toolInput = getClass().getClassLoader().getResourceAsStream(pluginBundledResource)
@@ -33,7 +43,23 @@ abstract class AbstractShellProjectPlugin implements Plugin<Project> {
 		}
 		resourcesZip.delete()
 
+		okFile.append(new Date().toString().bytes)
+
 		return resourcesDir
+	}
+
+	protected boolean existsInPath(String executable) {
+		Stream<String> paths = Stream.of(System.getenv("PATH").split(Pattern.quote(File.pathSeparator)))
+		boolean exists = false
+		paths.find {
+			path ->
+				if (new File(path,executable).exists()) {
+					exists = true
+					return true
+				}
+				return false
+		}
+		return exists
 	}
 
 }

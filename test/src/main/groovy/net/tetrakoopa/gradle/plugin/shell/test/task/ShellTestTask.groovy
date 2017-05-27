@@ -29,7 +29,7 @@ class ShellTestTask extends DefaultTask {
 		logger.info("Testing '${script.name}'")
 		Project topProject = project.getTopProject()
 
-		shell_test.result.executedTestsCount++
+		shell_test.result.executedCount++
 
 		if (workingDir==null) workingDir = project.file(".").absolutePath
 
@@ -51,7 +51,7 @@ class ShellTestTask extends DefaultTask {
 		}
 		logger.info("  Tested '${script.path}' : $execResult")
 		if(execResult.exitValue != 0) {
-			shell_test.result.failedTests << this
+			shell_test.result.failed << this
 		}
 	}
 
