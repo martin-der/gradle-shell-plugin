@@ -6,19 +6,20 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskAction
 
-class CheckTestsTesultsTask extends DefaultTask {
+class CheckTestsResultsTask extends DefaultTask {
 
 	@TaskAction
 	def showResults() {
 		Project project = getProject()
 		def logger = project.logger
 		ShellTestPluginExtension shell_test = project.shell_test
-		def testsCount = shell_test.result.executedTestsCount
-		def failedTestsCount = shell_test.result.failedTests.size()
+		def testsCount = shell_test.result.executedCount
+		def failedTestsCount = shell_test.result.failed.size()
 		if (failedTestsCount>0) {
 			logger.error("Some test(s) failed :")
-			shell_test.result.failedTests.each { logger.error("  - ${it.name}") }
-			throw new ShellTestException("$failedTestsCount / $testsCount failed")
+			shell_test.result.failed.each { logger.error("  - ${it.name}") }
+			if (shell_test.thowErrorOnBadResult)
+				throw new ShellTestException("Failed test(s) : $failedTestsCount / $testsCount")
 		} else
 			logger.info("All tests succeeded")
 	}
