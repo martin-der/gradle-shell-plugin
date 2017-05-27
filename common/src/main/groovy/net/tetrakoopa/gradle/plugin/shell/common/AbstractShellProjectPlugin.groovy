@@ -21,6 +21,12 @@ abstract class AbstractShellProjectPlugin implements Plugin<Project> {
 		Project topProject = getTopProject(project)
 		File resourcesDir = topProject.file("${topProject.buildDir}/${pluginId}/${name}")
 		File resourcesZip = topProject.file("${topProject.buildDir}/${pluginId}/${name}.zip")
+
+		File okFile = new File(resourcesDir, ".unpack-ok");
+		if (okFile.exists()) {
+			return resourcesDir
+		}
+
 		resourcesDir.mkdirs()
 		String pluginBundledResource = "${pluginId}.${name}.zip"
 		InputStream toolInput = getClass().getClassLoader().getResourceAsStream(pluginBundledResource)
@@ -32,6 +38,8 @@ abstract class AbstractShellProjectPlugin implements Plugin<Project> {
 			into "${resourcesDir}"
 		}
 		resourcesZip.delete()
+
+		okFile.append(new Date().toString().bytes)
 
 		return resourcesDir
 	}
