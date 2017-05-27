@@ -167,7 +167,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 	}
 
 	private boolean canCheckScript() {
-		return existsInPath("shellcheckZ")
+		return existsInPath("shellcheck")
 	}
 
 	private String getBiggestPrefix(String initialPrefix, FileCollection files) {
