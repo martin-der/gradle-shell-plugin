@@ -7,6 +7,10 @@ import org.gradle.api.tasks.bundling.Zip
 import net.tetrakoopa.mdu4j.util.IOUtil
 import org.gradle.tooling.model.build.GradleEnvironment
 
+import java.nio.file.Files
+import java.util.regex.Pattern
+import java.util.stream.Stream
+
 abstract class AbstractShellProjectPlugin implements Plugin<Project> {
 
 	protected getTopProject(Project project) {
@@ -42,6 +46,20 @@ abstract class AbstractShellProjectPlugin implements Plugin<Project> {
 		okFile.append(new Date().toString().bytes)
 
 		return resourcesDir
+	}
+
+	protected boolean existsInPath(String executable) {
+		Stream<String> paths = Stream.of(System.getenv("PATH").split(Pattern.quote(File.pathSeparator)))
+		boolean exists = false
+		paths.find {
+			path ->
+				if (new File(path,executable).exists()) {
+					exists = true
+					return true
+				}
+				return false
+		}
+		return exists
 	}
 
 }

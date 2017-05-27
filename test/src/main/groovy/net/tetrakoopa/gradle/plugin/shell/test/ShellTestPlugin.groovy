@@ -5,6 +5,7 @@ import net.tetrakoopa.gradle.plugin.shell.test.task.CheckChecksResultsTask
 import net.tetrakoopa.gradle.plugin.shell.test.task.CheckTestsResultsTask
 import net.tetrakoopa.gradle.plugin.shell.test.task.ShellTestTask
 import net.tetrakoopa.gradle.plugin.shell.test.task.ShellCheckTask
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
@@ -72,7 +73,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 				prefix = "test_"
 			}
 			check {
-				enabled = true
+				enabled = canCheckScript()
 				naming {
 					prefix = "check_"
 				}
@@ -131,6 +132,9 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 
 		if (project.shell_test.check.enabled) {
 
+			if (! canCheckScript()) throw new GradleException("Cannot check script : no available command")
+
+
 			def resultsCheckCheckTask = project.task(ALL_CHECKS_RESULT_TASK_NAME, type:CheckChecksResultsTask) { }
 			def allChecksTask = project.task(ALL_CHECKS_TASK_NAME) { }
 
@@ -160,6 +164,10 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 
 		}
 
+	}
+
+	private boolean canCheckScript() {
+		return existsInPath("shellcheckZ")
 	}
 
 	private String getBiggestPrefix(String initialPrefix, FileCollection files) {
