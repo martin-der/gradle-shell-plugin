@@ -10,10 +10,6 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
 
-import java.nio.file.Files
-import java.util.regex.Pattern
-import java.util.stream.Stream
-
 import static ShellTestPluginExtension.SHELL_TEST_EXTENSION_NAME
 
 class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Project> {
@@ -204,4 +200,3 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 		return trimmedStart
 	}
 }
-
