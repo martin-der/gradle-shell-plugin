@@ -25,6 +25,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 	public static final String ALL_CHECKS_TASK_NAME = "shell-check"
 
 	public static final String ENVVAR_TEST_RESULTS_DIRECTORY = "MDU_SHELLTEST_TEST_RESULTS_DIRECTORY"
+	public static final String ENVVAR_TEST_NAME = "MDU_SHELLTEST_TEST_NAME"
 
 	private int stringsGreatestCommonPrefixLength(String a, String b) {
 		int minLength = Math.min(a.length(), b.length())
