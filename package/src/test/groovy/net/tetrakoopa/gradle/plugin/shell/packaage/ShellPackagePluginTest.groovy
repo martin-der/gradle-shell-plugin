@@ -1,9 +1,11 @@
 package net.tetrakoopa.gradle.plugin.shell.packaage
 
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.testfixtures.ProjectBuilder
 import spock.lang.Shared
 import spock.lang.Specification
+import net.tetrakoopa.gradle.plugin.shell.packaage.ShellPackagePlugin
 
 class ShellPackagePluginTest extends Specification {
 
@@ -38,58 +40,63 @@ class ShellPackagePluginTest extends Specification {
 		project.extensions.findByName('shell_package') in ShellPackagePluginExtension
 	}
 
-	/*def "no Document  tasks are registered by default"() {
+	def "no packaging tasks are registered by default"() {
 		expect:
-		!project.tasks.withType(BuildDebianPackageTask)
+		!project.tasks.findByName(ShellPackagePlugin.TASK_NAME_INSTALLER)
+		!project.tasks.findByName(ShellPackagePlugin.TASK_NAME_DOCUMENTATION)
+		!project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
 	}
 
-	def "BuildDebianPackage tasks are registered on project evaluation"() {
+	def "packaging tasks are registered on project evaluation"() {
 		when: "plugin applied to project"
 		project.evaluate()
-		then: "there is a BuildDebianPackage task registered"
-		project.tasks.withType(BuildDebianPackageTask)
+		then: "there are a packaging tasks registered"
+		project.tasks.findByName(ShellPackagePlugin.TASK_NAME_INSTALLER)
+		project.tasks.findByName(ShellPackagePlugin.TASK_NAME_DOCUMENTATION)
+		project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
 	}
 
-	def "BuildDebianPackage task is registered as 'buildDeb'"() {
-		when: "plugin applied to project"
-		project.evaluate()
-		assert DEBPKGTASK_NAME == 'buildDeb'
-		then: "there is a 'buildDeb' task registered"
-		project.tasks.findByName('buildDeb') in BuildDebianPackageTask
-	}
+//	def "packaging tasks  registered as '...'"() {
+//		when: "plugin applied to project"
+//		project.evaluate()
+//		assert SOME_TASK_NAME == 'documentation'
+//		then: "there is a 'documentation' task registered"
+//		project.tasks.findByName('documentation') in DocumentationTask
+//	}
 
-	def "can handle a debian configuration"() {
+	/*def "can handle a shell-package configuration"() {
 		when: "project example project 'projectname' is evaluated"
 		Project project = ProjectBuilder.builder().withName('projectname').withProjectDir(projectDir).build()
 		project.evaluate()
 
 		then: "extension properties are mapped to task properties"
-		Task buildDebTask = project.tasks.findByName(DEBPKGTASK_NAME)
-		buildDebTask != null
-		buildDebTask.packagename == "packagename"
-		buildDebTask.changelogFile == new File("${projectDir}/../packagename/debian/changelog").canonicalFile
-		buildDebTask.controlDirectory == new File("${projectDir}/../packagename/control").canonicalFile
-		buildDebTask.publications == ['mavenStuff']
-		buildDebTask.data in Data
-		buildDebTask.outputFile == new File("${projectDir}/build/packagename-${project.version}.deb").canonicalFile
-	}
-
-	def "buildDeb is dependent on publicationTask"() {
-		when: "project example project 'projectname' is evaluated"
-		Project project = ProjectBuilder.builder().withName('projectname').withProjectDir(projectDir).build()
-		project.evaluate()
-		then:
-		Task buildDebTask = project.tasks.findByName(DEBPKGTASK_NAME)
-		Task publicationTask = project.tasks.findByName(PUBLISH_LOCAL_LIFECYCLE_TASK_NAME)
-		buildDebTask.taskDependencies.getDependencies(buildDebTask).contains(publicationTask)
-	}
-
-	def "buildDeb is dependent on assemble task"() {
-		when: "project example project 'projectname' is evaluated"
-		Project project = ProjectBuilder.builder().withName('projectname').withProjectDir(projectDir).build()
-		project.evaluate()
-		then:
-		Task buildDebTask = project.tasks.findByName(DEBPKGTASK_NAME)
-		buildDebTask.taskDependencies.getDependencies(buildDebTask).contains(project.tasks.findByName(ASSEMBLE_TASK_NAME))
+		Task packageZip = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
+		packageZip != null
+		packageZip.packagename == "packagename"
+		packageZip.changelogFile == new File("${projectDir}/../packagename/debian/changelog").canonicalFile
+		packageZip.controlDirectory == new File("${projectDir}/../packagename/control").canonicalFile
+		packageZip.data in Data
+		packageZip.outputFile == new File("${project.buildDir}/packagename-${project.version}.deb").canonicalFile
 	}*/
+
+	def "packageZip is dependent on documentation Task"() {
+		when: "project example project is evaluated"
+		Project project = ProjectBuilder.builder().withProjectDir(projectDir).build()
+		project.evaluate()
+		then:
+		Task packageZipTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
+		Task documentationTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_DOCUMENTATION)
+		packageZipTask.taskDependencies.getDependencies(packageZipTask).contains(documentationTask)
+	}
+
+	def "installer is dependent on packageZip Task"() {
+		when: "project example project is evaluated"
+		Project project = ProjectBuilder.builder().withProjectDir(projectDir).build()
+		project.evaluate()
+		then:
+		Task installerTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_INSTALLER)
+		Task packageZipTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
+		def dependencies = installerTask.taskDependencies.getDependencies(installerTask)
+		dependencies.contains(packageZipTask)
+	}
 }

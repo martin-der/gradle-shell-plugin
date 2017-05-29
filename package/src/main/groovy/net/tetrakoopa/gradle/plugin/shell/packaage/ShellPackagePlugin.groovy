@@ -11,6 +11,10 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 
 	public static final String ID = "net.tetrakoopa.shell-package"
 
+	public static final String TASK_NAME_DOCUMENTATION = "documentation"
+	public static final String TASK_NAME_PACKAGE_ZIP = "packageZip"
+	public static final String TASK_NAME_INSTALLER = "installer"
+
 
 	private void insertProperty(File destination, String propertyName, String propertyValue) {
 		if (propertyValue==null || propertyValue.equals(""))
@@ -81,7 +85,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 
 	void addTasks(Project project, File toolResourcesDir) {
 
-		project.task('documentation') {
+		project.task(TASK_NAME_DOCUMENTATION) {
 
 			ext.inputFiles = project.shell_package.source
 
@@ -103,7 +107,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 				}
 			}
 		}
-		project.task('packageZip',  type: Zip, dependsOn: 'documentation') {
+		project.task(TASK_NAME_PACKAGE_ZIP,  type: Zip, dependsOn: TASK_NAME_DOCUMENTATION) {
 
 			baseName = project.shell_package.distributionName
 
@@ -112,7 +116,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 			from project.shell_package.source
 		}
 
-		project.task('installer', dependsOn: 'packageZip') {
+		project.task(TASK_NAME_INSTALLER, dependsOn: TASK_NAME_PACKAGE_ZIP) {
 
 			doLast {
 
@@ -160,7 +164,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 			}
 
 		}
-		project.task('packages', dependsOn: ['documentation','packageZip','installer']) { }
+		project.task('packages', dependsOn: [TASK_NAME_DOCUMENTATION,TASK_NAME_PACKAGE_ZIP,TASK_NAME_INSTALLER]) { }
 	}
 }
 

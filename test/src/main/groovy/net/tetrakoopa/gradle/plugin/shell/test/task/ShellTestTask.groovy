@@ -40,6 +40,8 @@ class ShellTestTask extends DefaultTask {
 				? project.shell_test.resultsDir.absolutePath+"/"+testName
 				: project.shell_test.resultsDir.absolutePath
 		)
+		environmentVariables.put(ShellTestPlugin.ENVVAR_TEST_NAME, testName == null ? "" : testName)
+
 
 		def execResult = project.exec() {
 			it.workingDir = workingDir

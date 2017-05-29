@@ -10,10 +10,6 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
 
-import java.nio.file.Files
-import java.util.regex.Pattern
-import java.util.stream.Stream
-
 import static ShellTestPluginExtension.SHELL_TEST_EXTENSION_NAME
 
 class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Project> {
@@ -29,6 +25,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 	public static final String ALL_CHECKS_TASK_NAME = "shell-check"
 
 	public static final String ENVVAR_TEST_RESULTS_DIRECTORY = "MDU_SHELLTEST_TEST_RESULTS_DIRECTORY"
+	public static final String ENVVAR_TEST_NAME = "MDU_SHELLTEST_TEST_NAME"
 
 	private int stringsGreatestCommonPrefixLength(String a, String b) {
 		int minLength = Math.min(a.length(), b.length())
@@ -204,4 +201,3 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 		return trimmedStart
 	}
 }
-
