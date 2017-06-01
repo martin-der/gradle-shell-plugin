@@ -2,24 +2,42 @@
 
 
 assertLastCommandFailed() {
-	local last_result
 	last_result=$?
-	[ $# -gt 1 ] && {
-		assertNotSame "$1" "$2" $last_result
+
+	local last_result expected message
+	message="Assert last command failed"
+	expected=""
+
+	if [ $# -gt 1 ] ; then
+		expected="$2"
+		message="$1"
+	else
+		if [ $# -eq 1 ] ; then
+			if [ "$1" -eq "$1" ] 2>/dev/null ; then
+				if [ "$1" -ne 0 ] ; then
+					expected="$1"
+				fi
+			fi
+		fi
+	fi
+
+	if [ "x$expected" -eq "x" ] ; then
+		assertNotSame "$message" 0 $last_result
 		return $?
-	} || {
-		assertNotSame "Assert Failed" 0 $last_result
+	else
+		assertEquals "$message" "$expected" $last_result
 		return $?
-	}
+	fi
 }
+
 assertLastCommandSucceeded() {
 	local last_result
 	last_result=$?
-	[ $# -gt 0 ] && {
+	if [ $# -gt 0 ]; then
 		assertEquals "$1" 0 $last_result
 		return $?
-	} || {
-		assertEquals 0 $last_result
+	else
+		assertEquals "Assert last command succeeded" 0 $last_result
 		return $?
-	}
+	fi
 }
