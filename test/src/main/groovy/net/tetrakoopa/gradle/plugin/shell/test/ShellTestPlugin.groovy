@@ -94,6 +94,34 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 	private void addTasks(Project project) {
 		if (project.shell_test.returnCode.executionError == 0 || project.shell_test.returnCode.assertionFailure == 0) throw new ShellTestException("returnCode.executionError and returnCode.executionError cannot be '0' ( since 0 is the success return code )")
 
+		String projectStart = "${project.projectDir}/"
+
+		String trimmedTestScriptsStart = projectStart
+		if (project.shell_test.naming.removeCommonPrefix ) {
+			trimmedTestScriptsStart = getBiggestPrefix(projectStart, project.shell_test.testScripts)
+		}
+
+		setupTestTasks(project, trimmedTestScriptsStart)
+
+		String trimmedScriptsStart = projectStart
+		if (project.shell_test.naming.removeCommonPrefix ) {
+			trimmedScriptsStart = getBiggestPrefix(projectStart, project.shell_test.scripts)
+		}
+
+		if (project.shell_test.check.enabled) {
+
+			if (!canCheckScript()) throw new GradleException("Cannot check script : no available command")
+
+			setupCheckTasks(project, trimmedScriptsStart)
+		}
+	}
+
+	private boolean canCheckScript() {
+		return existsInPath("shellcheck")
+	}
+
+	private void setupTestTasks(Project project, String trimmedTestScriptsStart) {
+
 		def resultsCheckTask = project.task(ALL_TESTS_RESULT_TASK_NAME, type:CheckTestsResultsTask) { }
 		def allTestsTask = project.task(ALL_TESTS_TASK_NAME) { }
 
@@ -102,16 +130,9 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 			return
 		}
 
-		String projectStart = "${project.projectDir}/"
-
-		String trimmedStart = projectStart
-		if (project.shell_test.naming.removeCommonPrefix ) {
-			trimmedStart = getBiggestPrefix(projectStart, project.shell_test.testScripts)
-		}
-
 		project.shell_test.testScripts.each() { file ->
 
-			String projectTrimmedName = file.absolutePath.startsWith(trimmedStart) ? file.absolutePath.substring(trimmedStart.size()) : file.absolutePath
+			String projectTrimmedName = file.absolutePath.startsWith(trimmedTestScriptsStart) ? file.absolutePath.substring(trimmedTestScriptsStart.size()) : file.absolutePath
 			String simple_testname = projectTrimmedName
 
 			String testname = projectTrimmedName
@@ -127,51 +148,46 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 			testTask.finalizedBy resultsCheckTask
 		}
 
-		if (project.shell_test.check.enabled) {
 
-			if (! canCheckScript()) throw new GradleException("Cannot check script : no available command")
+	}
 
+	private void setupCheckTasks(Project project, String trimmedScriptsStart) {
 
-			def resultsCheckCheckTask = project.task(ALL_CHECKS_RESULT_TASK_NAME, type:CheckChecksResultsTask) { }
-			def allChecksTask = project.task(ALL_CHECKS_TASK_NAME) { }
+		def resultsCheckCheckTask = project.task(ALL_CHECKS_RESULT_TASK_NAME, type:CheckChecksResultsTask) { }
+		def allChecksTask = project.task(ALL_CHECKS_TASK_NAME) { }
 
-			trimmedStart = projectStart
-			if (project.shell_test.naming.removeCommonPrefix ) {
-				trimmedStart = getBiggestPrefix(projectStart, project.shell_test.scripts)
+		if (project.shell_test.scripts == null || project.shell_test.scripts.size()==0) {
+			project.getLogger().warn(LOGGING_PREFIX+"No script found for checking")
+			return
+		}
+
+		project.shell_test.scripts.each() { file ->
+
+			String projectTrimmedName = file.absolutePath.startsWith(trimmedScriptsStart) ? file.absolutePath.substring(trimmedScriptsStart.size()) : file.absolutePath
+			String simple_testname = projectTrimmedName
+
+			String checkname = projectTrimmedName
+			if (project.shell_test.check.naming.prefix)
+				checkname = project.shell_test.check.naming.prefix + checkname
+
+			def checkTask = project.task(checkname, type:ShellCheckTask) {
+				testName = simple_testname
+				script = file
+				if (project.shell_test.workingDir != null) workingDir = project.shell_test.workingDir
 			}
 
-			project.shell_test.scripts.each() { file ->
-
-				String projectTrimmedName = file.absolutePath.startsWith(trimmedStart) ? file.absolutePath.substring(trimmedStart.size()) : file.absolutePath
-				String simple_testname = projectTrimmedName
-
-				String checkname = projectTrimmedName
-				if (project.shell_test.check.naming.prefix)
-					checkname = project.shell_test.check.naming.prefix + checkname
-
-				def checkTask = project.task(checkname, type:ShellCheckTask) {
-					testName = simple_testname
-					script = file
-					if (project.shell_test.workingDir != null) workingDir = project.shell_test.workingDir
-				}
-
-				allChecksTask.dependsOn checkTask
-				checkTask.finalizedBy resultsCheckCheckTask
-			}
-
+			allChecksTask.dependsOn checkTask
+			checkTask.finalizedBy resultsCheckCheckTask
 		}
 
 	}
 
-	private boolean canCheckScript() {
-		return existsInPath("shellcheck")
-	}
 
 	private String getBiggestPrefix(String initialPrefix, FileCollection files) {
 		String trimmedStart = initialPrefix
 		int greatestCommonPrefixLength = 0
 
-		if (files.size()>1) {
+		if (files != null && files.size()>1) {
 			String greatestCommonPrefix = null
 			files.find() { file ->
 				String filename = file.absolutePath
