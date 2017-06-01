@@ -82,9 +82,8 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 		project.ext.ShellTestTask = ShellTestTask
 		project.ext.AllShellTestsTask = CheckTestsResultsTask
 
-		prepareEnvironment(project)
-
 		project.afterEvaluate {
+			prepareEnvironment(project)
 			addTasks(project)
 		}
 
