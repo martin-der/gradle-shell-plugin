@@ -39,6 +39,7 @@ class ShellTestPluginExtension {
 	class Check {
 		class Naming {
 			String prefix
+			boolean removeSuffix
 		}
 		boolean enabled
 		final Naming naming = new Naming()
@@ -50,6 +51,7 @@ class ShellTestPluginExtension {
 	class Naming {
 		boolean removeCommonPrefix
 		String prefix
+		boolean removeSuffix
 	}
 
 	def environmentVariables = [:]

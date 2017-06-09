@@ -27,6 +27,8 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 	public static final String ENVVAR_TEST_RESULTS_DIRECTORY = "MDU_SHELLTEST_TEST_RESULTS_DIRECTORY"
 	public static final String ENVVAR_TEST_NAME = "MDU_SHELLTEST_TEST_NAME"
 
+	private static final def FILENAME_SUFFIX_REGEX = ~/(?i)\.\w+$/
+
 	private int stringsGreatestCommonPrefixLength(String a, String b) {
 		int minLength = Math.min(a.length(), b.length())
 		for (int i = 0; i < minLength; i++) {
@@ -68,11 +70,13 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 			naming {
 				removeCommonPrefix = true
 				prefix = "test_"
+				removeSuffix = false
 			}
 			check {
 				enabled = canCheckScript()
 				naming {
 					prefix = "check_"
+					removeSuffix = false
 				}
 				resultsDir = new File(project.buildDir, "check-results")
 				thowErrorOnBadResult = false
@@ -132,6 +136,8 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 		project.shell_test.testScripts.each() { file ->
 
 			String projectTrimmedName = file.absolutePath.startsWith(trimmedTestScriptsStart) ? file.absolutePath.substring(trimmedTestScriptsStart.size()) : file.absolutePath
+			if (project.shell_test.naming.removeSuffix)
+				projectTrimmedName = projectTrimmedName - FILENAME_SUFFIX_REGEX
 			String simple_testname = projectTrimmedName
 
 			String testname = projectTrimmedName
@@ -163,6 +169,8 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 		project.shell_test.scripts.each() { file ->
 
 			String projectTrimmedName = file.absolutePath.startsWith(trimmedScriptsStart) ? file.absolutePath.substring(trimmedScriptsStart.size()) : file.absolutePath
+			if (project.shell_test.check.naming.removeSuffix)
+				projectTrimmedName = projectTrimmedName - FILENAME_SUFFIX_REGEX
 			String simple_testname = projectTrimmedName
 
 			String checkname = projectTrimmedName
