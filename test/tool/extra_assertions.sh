@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 
-
+# @params message return_value
+#    assert returned value is exacly `return_value`, print `message` otherwise
+# @params return_value
+#    assert returned value is exacly `return_value`, print a default message otherwise
+# @params
+#    assert returned value not 0
 assertLastCommandFailed() {
-	last_result=$?
 
 	local last_result expected message
+	last_result=$?
 	message="Assert last command failed"
 	expected=""
 
@@ -21,7 +26,7 @@ assertLastCommandFailed() {
 		fi
 	fi
 
-	if [ "x$expected" -eq "x" ] ; then
+	if [ "x$expected" = "x" ] ; then
 		assertNotSame "$message" 0 $last_result
 		return $?
 	else
