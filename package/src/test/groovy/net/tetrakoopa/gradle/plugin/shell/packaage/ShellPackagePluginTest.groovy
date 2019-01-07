@@ -5,7 +5,8 @@ import org.gradle.api.Task
 import org.gradle.testfixtures.ProjectBuilder
 import spock.lang.Shared
 import spock.lang.Specification
-import net.tetrakoopa.gradle.plugin.shell.packaage.ShellPackagePlugin
+
+import java.nio.file.Files
 
 class ShellPackagePluginTest extends Specification {
 
@@ -13,23 +14,26 @@ class ShellPackagePluginTest extends Specification {
 	Project project
 	@Shared
 	def projectDir
+	@Shared
+	def buildDir
 
 	def setup() {
 		URL resource = getClass().getResource('/gradle/packaged-project/build.gradle')
 		projectDir = new File(resource.toURI()).getParentFile()
 		project = ProjectBuilder.builder().withName('project').withProjectDir(projectDir).build()
+		buildDir = Files.createTempDirectory("Project.buildDir")
 	}
 
 	def "no ShellPackagePluginExtension is registered by default"() {
 		expect:
-		!project.extensions.findByType(ShellPackagePluginExtension)
+			!project.extensions.findByType(ShellPackagePluginExtension)
 	}
 
 	def "ShellPackagePluginExtension is registered on project evaluation"() {
 		when: "plugin applied to project"
-		project.evaluate()
+			project.evaluate()
 		then:
-		project.extensions.findByType(ShellPackagePluginExtension)
+			project.extensions.findByType(ShellPackagePluginExtension)
 	}
 
 	def "ShellPackagePluginExtension is registered as 'shell_package'"() {
@@ -99,4 +103,15 @@ class ShellPackagePluginTest extends Specification {
 		def dependencies = installerTask.taskDependencies.getDependencies(installerTask)
 		dependencies.contains(packageZipTask)
 	}
+
+	/*def "documentation create a directory with two files"() {
+		when: "project task documentation is invoked"
+		Project project = ProjectBuilder.builder().withProjectDir(projectDir).with({
+			project.buildDir = buildDir
+		}).build()
+		project.evaluate()
+		then:
+		println "Temp dir : "+((File)buildDir).getAbsolutePath()
+
+	}*/
 }

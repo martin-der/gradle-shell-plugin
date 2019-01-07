@@ -1,6 +1,7 @@
 package net.tetrakoopa.gradle.plugin.shell.packaage
 
 import net.tetrakoopa.gradle.plugin.shell.common.AbstractShellProjectPlugin
+import net.tetrakoopa.poignee.bundledresources.BundledResourcesPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.bundling.Zip
@@ -71,7 +72,9 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 
 	void apply(Project project) {
 
-		File toolResourcesDir = prepareResources(project, ID, "tool")
+		addProjectExtensions(project)
+
+		File toolResourcesDir = BundledResourcesPlugin.unpackBundledResources(project, ID, "tool")
 
 		project.extensions.create(SHELL_PACKAGE_EXTENSION_NAME, ShellPackagePluginExtension, project)
 		setShellPackageDefaultsConfiguration(project)
@@ -90,6 +93,8 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 			ext.inputFiles = project.shell_package.source
 
 			doLast {
+
+				if (!existsInPath("awk")) throw new IllegalStateException("Task '${TASK_NAME_DOCUMENTATION}' requires command 'awk'")
 
 				def shellScripts = ext.inputFiles
 
@@ -119,6 +124,8 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 		project.task(TASK_NAME_INSTALLER, dependsOn: TASK_NAME_PACKAGE_ZIP) {
 
 			doLast {
+
+				if (!existsInPath("shar")) throw new IllegalStateException("Task '${TASK_NAME_INSTALLER}' requires command 'shar'")
 
 				def installerFile = project.file("${project.shell_package.output.distributionDir}/${project.shell_package.distributionName}.shar")
 

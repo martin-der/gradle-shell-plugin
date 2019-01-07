@@ -18,7 +18,7 @@ class CheckTestsResultsTask extends DefaultTask {
 		if (failedTestsCount>0) {
 			logger.error("Some test(s) failed :")
 			shell_test.result.failed.each { logger.error("  - ${it.name}") }
-			if (shell_test.thowErrorOnBadResult)
+			if (shell_test.throwErrorOnBadResult)
 				throw new ShellTestException("Failed test(s) : $failedTestsCount / $testsCount")
 		} else
 			logger.info("All tests succeeded")

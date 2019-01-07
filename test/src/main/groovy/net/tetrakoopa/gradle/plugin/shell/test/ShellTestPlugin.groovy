@@ -5,6 +5,7 @@ import net.tetrakoopa.gradle.plugin.shell.test.task.CheckChecksResultsTask
 import net.tetrakoopa.gradle.plugin.shell.test.task.CheckTestsResultsTask
 import net.tetrakoopa.gradle.plugin.shell.test.task.ShellTestTask
 import net.tetrakoopa.gradle.plugin.shell.test.task.ShellCheckTask
+import net.tetrakoopa.poignee.bundledresources.BundledResourcesPlugin
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -15,6 +16,8 @@ import static ShellTestPluginExtension.SHELL_TEST_EXTENSION_NAME
 class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Project> {
 
 	public static final String ID = "net.tetrakoopa.shell-test"
+
+	private static final String GRADLE_LIFECYCLE_TEST_TASK = 'check'
 
 	public static final String LOGGING_PREFIX = "Shell-Test : "
 
@@ -52,7 +55,11 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 	}
 
 	void apply(Project project) {
-		File toolResourcesDir = prepareResources(project, ID, "tool")
+
+		addProjectExtensions(project)
+
+		File toolResourcesDir = BundledResourcesPlugin.unpackBundledResources(project, ID, "tool")
+
 
 		def extension = project.extensions.create(SHELL_TEST_EXTENSION_NAME, ShellTestPluginExtension, project)
 		extension.with {
@@ -61,7 +68,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 				assertionFailure = 24
 			}
 			resultsDir = new File(project.buildDir, "test-results")
-			thowErrorOnBadResult = true
+			throwErrorOnBadResult = true
 			testSuite {
 				shunit2Home = new File(toolResourcesDir, "shunit2-2.0.3")
 				executable = new File(project.shell_test.testSuite.shunit2Home, "shunit2")
@@ -79,7 +86,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 					removeSuffix = false
 				}
 				resultsDir = new File(project.buildDir, "check-results")
-				thowErrorOnBadResult = false
+				throwErrorOnBadResult = false
 			}
 		}
 
@@ -89,6 +96,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 		project.afterEvaluate {
 			prepareEnvironment(project)
 			addTasks(project)
+			project
 		}
 
 
@@ -153,6 +161,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 			testTask.finalizedBy resultsCheckTask
 		}
 
+		project.tasks[GRADLE_LIFECYCLE_TEST_TASK].dependsOn resultsCheckTask
 
 	}
 

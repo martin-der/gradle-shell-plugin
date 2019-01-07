@@ -65,7 +65,7 @@ class ShellTestPluginExtension {
 	File workingDir
 	final Result result = new Result()
 	File resultsDir
-	boolean thowErrorOnBadResult
+	boolean throwErrorOnBadResult
 	ConfigurableFileCollection scripts
 
 	ConfigurableFileCollection scriptFrom(Object... paths) {
