@@ -8,3 +8,9 @@ compileGroovy.doFirst {
 	sourceCompatibility = "1.8" //"${property('sourceCompatibility')}"
 	targetCompatibility = "1.7" //"${property('targetCompatibility')}"
 }
+
+dependencies {
+	//compile "com.github.martin-der.poignee:common-project:${property('version.martin-der.poignee')}"
+	compile "net.tetrakoopa.poignee:common-project:${property('version.martin-der.poignee')}"
+	compile "net.tetrakoopa.poignee:bundled-resources:${property('version.martin-der.poignee')}"
+}
