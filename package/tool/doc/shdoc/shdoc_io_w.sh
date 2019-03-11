@@ -1,5 +1,9 @@
 #!/bin/sh
 
+set -u
+
 SHDOC="$(dirname "$0")/shdoc"
 
-cat "$1" | "$SHDOC" > "$2"
+FILENAME="$(basename "$1")"
+
+cat "$1" | "$SHDOC" -v script_name="$FILENAME" > "$2"
