@@ -1,16 +1,13 @@
 
-chmod +x installer/install.sh || exit 1
-cd installer || exit 1
+chmod +x install.sh || exit 1
 
 
-#stty raw -echo && ./installer/install.sh ; stty sane
-
-label="Installation of $MDU_INSTALL_APPLICATION_LABEL"
+title_short="Installation of $MDU_INSTALL_APPLICATION_LABEL"
 
 install_with_terminal() {
-	local KNOWN_TERMS="xterm gnome-terminal rxvt dtterm eterm Eterm xfce4-terminal konsole lxterminal kvt aterm terminology"
+	local KNOWN_TERMS="xterm konsole gnome-terminal rxvt dtterm eterm Eterm xfce4-terminal lxterminal kvt aterm terminology"
 
-	[ x"$DISPLAY" != x -a x"$xterm_loop" = x ] || {
+	[ x"$DISPLAY" != x -a "x$term_loop" = x ] || {
 		echo "No XDisplay available ( 'term_loop' = '$xterm_loop' )" >&2
 		return 1
 	}
@@ -30,20 +27,21 @@ install_with_terminal() {
 		echo "No terminal found" >&2
 		return 1
 	}
-	exec "$found_term" -title "$label" -e "./install.sh" "$MDU_INSTALL_APPLICATION_LABEL"
+	exec "$found_term" -title "$title_short" -e "./install.sh"
 	return $?
 }
 
 
 #if [ -t 1 ] ; then
 if tty -s; then
-	./install.sh "$MDU_INSTALL_APPLICATION_LABEL"
+	./install.sh
 else
 	install_with_terminal || {
-		echo "Unable to run script with terminal" >&2
+		echo "Unable to run installation script with terminal" >&2
 		exit 1
 	}
 fi
 
+clean_all
 
 exit 0
