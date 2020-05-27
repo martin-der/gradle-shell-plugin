@@ -1,34 +1,36 @@
 
 version '0.1-SNAPSHOT'
 
+dependencies {
+	compile project(':common')
+}
+
+buildscript{
+	repositories{
+		mavenCentral()
+		mavenLocal()
+		maven { url 'https://jitpack.io' }
+	}
+
+	dependencies {
+//		classpath "net.tetrakoopa.poignee:bundled-resources:${property('version.martin-der.poignee')}"
+		classpath "com.github.martin-der.poignee:bundled-resources:${property('version.martin-der.poignee')}"
+	}
+}
+
+apply plugin: 'net.tetrakoopa.bundled-resources'
+
 compileGroovy.doFirst {
 	sourceCompatibility = "${project.property('sourceCompatibility')}"
 	targetCompatibility = "${project.property('targetCompatibility')}"
 }
 
-dependencies {
-	compile project(':common')
-}
+bundled {
+	pluginId 'net.tetrakoopa.shell-test'
 
-def toolZipName = "net.tetrakoopa.shell-test.tool.zip"
-
-task('zipTools', type: Zip) {
-
-	archiveName = toolZipName
-
-	destinationDir = file(buildDir)
-
-	from fileTree("tool")
-}
-
-task('tools', dependsOn: 'zipTools') {
-	doLast {
-		copy {
-			from file("${buildDir}/${toolZipName}")
-			into "${buildDir}/resources/main"
-		}
+	bundle {
+		name = 'tool'
+		from file('tool')
+		//into 'tool'
 	}
 }
-
-tools.mustRunAfter processResources
-jar.dependsOn tools

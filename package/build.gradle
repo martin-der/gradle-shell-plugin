@@ -1,34 +1,50 @@
 
+
+buildscript{
+	repositories{
+		mavenCentral()
+		mavenLocal()
+		maven { url 'https://jitpack.io' }
+	}
+
+	dependencies {
+		//classpath "net.tetrakoopa.poignee:bundled-resources:${property('version.martin-der.poignee')}"
+		classpath "com.github.martin-der.poignee:bundled-resources:${property('version.martin-der.poignee')}"
+	}
+}
+
 version '0.1-SNAPSHOT'
 
+apply plugin: 'net.tetrakoopa.bundled-resources'
+
 compileGroovy.doFirst {
-	sourceCompatibility = "1.8" //"${property('sourceCompatibility')}"
-	targetCompatibility = "1.7" //"${property('targetCompatibility')}"
+	sourceCompatibility = "${property('sourceCompatibility')}"
+	targetCompatibility = "${property('targetCompatibility')}"
 }
 
 dependencies {
 	compile project(':common')
 }
 
-def toolZipName = "net.tetrakoopa.shell-package.tool.zip"
-
-task('zipTools', type: Zip) {
-
-	archiveName = toolZipName
-
-	destinationDir = file(buildDir)
-
-	from fileTree("tool")
-}
-
-task('tools', dependsOn: 'zipTools') {
-	doLast {
-		copy {
-			from file("${buildDir}/${toolZipName}")
-			into "${buildDir}/resources/main"
-		}
+jar {
+	manifest {
+		attributes(
+				'Built-By'       : System.properties['user.name'],
+				'Build-Timestamp': new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
+				'Build-Revision' : version,
+				'Created-By'     : "Gradle ${gradle.gradleVersion}",
+				'Build-Jdk'      : "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})",
+				'Build-OS'       : "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}"
+		)
 	}
 }
 
-tools.mustRunAfter processResources
-jar.dependsOn tools
+bundled {
+	pluginId 'net.tetrakoopa.shell-package'
+
+	bundle {
+		name = 'tool'
+		from file('tool')
+		//into 'tool'
+	}
+}
