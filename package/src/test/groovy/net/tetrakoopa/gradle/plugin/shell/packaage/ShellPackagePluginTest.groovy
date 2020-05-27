@@ -93,15 +93,17 @@ class ShellPackagePluginTest extends Specification {
 		packageZipTask.taskDependencies.getDependencies(packageZipTask).contains(documentationTask)
 	}
 
-	def "installer is dependent on packageZip Task"() {
+	def "task 'packages' depends on packageZip and packageTgz Tasks"() {
 		when: "project example project is evaluated"
 		Project project = ProjectBuilder.builder().withProjectDir(projectDir).build()
 		project.evaluate()
 		then:
-		Task installerTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_INSTALLER)
+		Task packagesTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGES)
 		Task packageZipTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
-		def dependencies = installerTask.taskDependencies.getDependencies(installerTask)
+		Task packageTgzTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_TGZ)
+		def dependencies = packagesTask.taskDependencies.getDependencies(packagesTask)
 		dependencies.contains(packageZipTask)
+		dependencies.contains(packageTgzTask)
 	}
 
 	/*def "documentation create a directory with two files"() {
