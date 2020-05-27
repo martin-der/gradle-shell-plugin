@@ -60,7 +60,6 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 
 		File toolResourcesDir = BundledResourcesPlugin.unpackBundledResources(project, ID, "tool")
 
-
 		def extension = project.extensions.create(SHELL_TEST_EXTENSION_NAME, ShellTestPluginExtension, project)
 		extension.with {
 			returnCode {
