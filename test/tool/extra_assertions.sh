@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # @params message return_value
-#    assert returned value is exacly `return_value`, print `message` otherwise
+#    assert returned value is exactly `return_value`, print `message` otherwise
 # @params return_value
-#    assert returned value is exacly `return_value`, print a default message otherwise
+#    assert returned value is exactly `return_value`, print a default message otherwise
 # @params
 #    assert returned value not 0
 assertLastCommandFailed() {
