@@ -1,6 +1,22 @@
+#@IgnoreInspection BashAddShebang
 
+__installer_properties="$(cat "config")"
 
-log_info "Installation of '$project_label'"
+ui_type="$(properties_find "ui.type" <<< "$__installer_properties")"
+ui_theme="$(properties_find "ui.theme" <<< "$__installer_properties")"
+installer_prefix_alternatives="$(properties_find "prefix.alternatives" <<< "$__installer_properties")"
+installer_prefix_alternatives="$(expand_vars "${installer_prefix_alternatives}")"
+
+log_debug "installer_prefix_alternatives = '$installer_prefix_alternatives'"
+
+display_banner() {
+	if [ "x${banner_to_display}" = "x" ]; then
+		echo "Installation of '${project_label}' (${project_version})"
+		return 0
+	fi
+	cat "${banner_to_display}"
+	echo
+}
 
 get_install_location() {
    local index=0
@@ -9,13 +25,6 @@ get_install_location() {
    index=$(($index+1))
    [ $wanted -eq $index ] && { echo -n "/usr/local/bin" ; return 0 ; }
    index=$(($index+1))
-   [ "x$MDU_DEV_PROJECT_DIRECTORY" != "x" ] && {
-      [ $wanted -eq $index ] && {
-         [ "x$project_name" == "x" ] && echo -n "${MDU_DEV_PROJECT_DIRECTORY}" || echo -n "${MDU_DEV_PROJECT_DIRECTORY}/${project_name}"
-         return 0 ;
-      }
-      index=$(($index+1))
-   }
    return 1
 }
 get_install_locations_count() {
@@ -34,17 +43,25 @@ print_install_locations() {
       index=$(($index+1))
       echo "$index) '$location'"
    done
-   echo "$(($index+1))) a custom location..." ; index=$(($index+1))
+   index=$(($index+1))
+   echo "${index}) a custom location..." ;
 }
 
 install_scripts() {
-	local install_location="$1"
-	local ftarget
-	mkdir -p "${install_location}" || return 1
+	local install_dir="$1"
+	local target_name
+	local target
+	mkdir -p "${install_dir}" || return 1
 	while IFS=$'\n' read f ; do
-		ftarget="$(basename "$f")"
-   		cp -r "$f" "${install_location}/$ftarget" || return 1
-	done <<< "$( find ./content -maxdepth 1 -mindepth 1 \( -name '*.sh' -o -name '*.py' -o -name 'doc' \)  )"
+		test "x${f}" == "x" && {
+			log_warn "No file to install"
+			return 1
+		}
+		target_name="$(basename "$f")"
+		target="${install_dir}/${target_name}"
+		log_debug "Copy '${f}' => '${target}'"
+   		cp -r "${f}" "${target}" || return 1
+	done <<< "$( find ./content/bin  )"
 }
 
 show_readme() {
@@ -83,10 +100,10 @@ execute_user_script() {
 			* ) echo "Please answer Yes or No." ;;
 		esac
 	done
-	sh "$user_script_to_execute" !
+	sh "$user_script_to_execute"
 	local result=$?
 	if [ $result -ne 0 ] ; then
-		log_error "User script exited with error code $result"
+		log_error "User script exited with ${result}"
 	fi
 	return $?
 }
@@ -95,11 +112,10 @@ execute_user_script() {
 # |      Execution      |
 # -----------------------
 
-PAGE_SEPARATOR="-----------------------"
+display_banner
 
 show_readme
 
-log_info "$PAGE_SEPARATOR"
 
 install_location_count=$(get_install_locations_count)
 install_location_choices_count=$(($install_location_count+1))
@@ -138,7 +154,5 @@ install_scripts "$install_location" || {
 	exit 1
 }
 
-
-log_info "$PAGE_SEPARATOR"
 
 execute_user_script
