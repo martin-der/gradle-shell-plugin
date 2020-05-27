@@ -1,4 +1,4 @@
-package net.tetrakoopa.gradle.plugin.shell.packaage
+package net.tetrakoopa.gradle.plugin.shell.packaage.exception
 
 import org.gradle.api.GradleException
 

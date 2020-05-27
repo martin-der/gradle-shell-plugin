@@ -1,7 +1,13 @@
 package net.tetrakoopa.gradle.plugin.shell.packaage
 
+import net.tetrakoopa.gradle.plugin.common.file.DefaultPathOrContentLocation
+import net.tetrakoopa.gradle.plugin.common.file.PathOrContentLocation
+import net.tetrakoopa.gradle.plugin.shell.packaage.exception.ShellPackageException
+import net.tetrakoopa.gradle.plugin.shell.packaage.extension.documentation.Documentation
+import net.tetrakoopa.gradle.plugin.shell.packaage.resource.DefaultInstallSpec
+import net.tetrakoopa.gradle.plugin.shell.packaage.resource.InstallSpec
 import org.gradle.api.Project
-import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.CopySpec
 import org.gradle.util.ConfigureUtil
 
 class ShellPackagePluginExtension {
@@ -15,57 +21,84 @@ class ShellPackagePluginExtension {
 		this.project = project
 	}
 	class Output {
-		String distributionDir
-		String documentationDir
+		File distributionDir
+		File documentationDir
 	}
-	class Documentation {
-		boolean tableOfContent
+	class Banner {
+		final PathOrContentLocation content = new DefaultPathOrContentLocation()
+		Closure replace
 	}
-	class Installer {
-		class UserScript {
-			final PathOrContentLocation script = new PathOrContentLocation()
-			String question
-			def script(Closure closure) { script.__configure(closure, "installer userScript script")}
+
+	class Information {
+		class Maintainer {
+			String name
+			String email
 		}
-		final PathOrContentLocation readme = new PathOrContentLocation()
-		final PathOrContentLocation licence = new PathOrContentLocation()
+		Maintainer maintainer
+	}
+
+	class Installer {
+		class Prefix {
+			boolean useDefault
+			private final List<String> alternatives = new ArrayList<>()
+			def alternative(String prefix) {
+				if (prefix == null) throw new IllegalArgumentException('Prefix cannot be null')
+				//if (!prefix.startsWith('/') && !prefix.matches('^\\$')) throw new IllegalArgumentException("Invalid prefix '${prefix}' : Prefix be a absolute path or start with a variable")
+				alternatives.add(prefix)
+			}
+			def alternatives(String... prefixes) {
+				prefixes.each {prefix -> alternative(prefix)}
+			}
+		}
+		class UserScript {
+			final PathOrContentLocation script = new DefaultPathOrContentLocation()
+			String question
+			def script(Closure closure) { script.__configure(closure, "installer userScript script") }
+		}
+		class Licence {
+			final PathOrContentLocation licence = new DefaultPathOrContentLocation()
+			String preamble
+			String agreementRequest
+			def content(Closure closure) { licence.__configure(closure, "installer licence content")}
+		}
+
+		final Prefix prefix = new Prefix()
+		final Licence licence = new Licence()
+		final PathOrContentLocation readme = new DefaultPathOrContentLocation()
 		final UserScript userScript = new UserScript()
+
+		private final List<InstallSpec> installSpecs = new ArrayList<InstallSpec>()
+
+		def rule(Closure closure) {
+			InstallSpec spec = ConfigureUtil.configure(closure, new DefaultInstallSpec())
+			if (spec.importance == null) spec.importance = InstallSpec.Importance.MANDATORY
+			if (!spec.name) throw new ShellPackageException("Rule must be named")
+			if (installSpecs.any({s -> s.name == spec.name})) throw new ShellPackageException("A rule named '${spec.name}' already exists")
+			installSpecs.add(spec)
+		}
 
 		def userScript(Closure closure) { ConfigureUtil.configure(closure, userScript) }
 		def readme(Closure closure) { readme.__configure(closure, "installer readme")}
-		def licence(Closure closure) { licence.__configure(closure, "installer licence")}
+		def licence(Closure closure) { ConfigureUtil.configure(closure, licence) }
 	}
 
-	ConfigurableFileCollection source
+	CopySpec source
 	String distributionName
+	String version
+	Information information
+	Banner banner = new Banner()
 	final Output output = new Output()
-	final Documentation documentation = new Documentation()
-	final Installer installer = new Installer()
+	Documentation documentation = new Documentation()
+	Installer installer = new Installer()
 
-	ConfigurableFileCollection from(Object... paths) {
-		if (source == null)
-			source = project.files(paths)
-		else
-			source.from(paths)
-		return source
+	def source(Closure closure) {
+		source = project.copySpec(closure)
 	}
 
+	def information(Closure closure) { ConfigureUtil.configure(closure, information) }
 	def output(Closure closure) { ConfigureUtil.configure(closure, output) }
 	def documentation(Closure closure) { ConfigureUtil.configure(closure, documentation) }
+	def banner(Closure closure) { ConfigureUtil.configure(closure, banner) }
 	def installer(Closure closure) { ConfigureUtil.configure(closure, installer) }
-}
-
-class PathOrContentLocation {
-
-	def __configure(Closure closure, String forWhat) {
-		ConfigureUtil.configure(closure, this)
-		checkOnlyOneDefinition(forWhat)
-	}
-
-	File path
-	/** Relative to install content './' */
-	String location
-	boolean defined() { return location != null || path != null }
-	void checkOnlyOneDefinition(String forWhat) { if (location != null && path != null) throw new ShellPackageException("Cannot define both for 'path' and 'location' for '$forWhat'") }
 }
 
