@@ -310,7 +310,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 					ResourceHelper.addCopyAll(shell_package.installer.installSpecs)
 				}
 
-				InstallerHelper.addComponents(internal.sourceDetails, shell_package.installer.installSpecs, new File(internal.installerFilesRootDir,'components'))
+				InstallerHelper.addComponents(internal.sourceDetails, shell_package.installer.installSpecs, new File(internal.installerFilesRootDir,'component'))
 
 				InstallerHelper.addScripts(internal, project)
 
