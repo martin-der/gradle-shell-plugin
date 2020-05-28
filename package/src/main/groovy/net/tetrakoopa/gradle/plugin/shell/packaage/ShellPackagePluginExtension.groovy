@@ -69,11 +69,11 @@ class ShellPackagePluginExtension {
 
 		private final List<InstallSpec> installSpecs = new ArrayList<InstallSpec>()
 
-		def rule(Closure closure) {
+		def component(Closure closure) {
 			InstallSpec spec = ConfigureUtil.configure(closure, new DefaultInstallSpec())
 			if (spec.importance == null) spec.importance = InstallSpec.Importance.MANDATORY
-			if (!spec.name) throw new ShellPackageException("Rule must be named")
-			if (installSpecs.any({s -> s.name == spec.name})) throw new ShellPackageException("A rule named '${spec.name}' already exists")
+			if (!spec.name) throw new ShellPackageException("Component must be named")
+			if (installSpecs.any({s -> s.name == spec.name})) throw new ShellPackageException("A component named '${spec.name}' already exists")
 			installSpecs.add(spec)
 		}
 
