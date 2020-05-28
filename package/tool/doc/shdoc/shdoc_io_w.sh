@@ -3,7 +3,7 @@
 set -u
 
 GAWK_COMMAND=gawk
-test "x$3" != x && GAWK_COMMAND="$3"
+test "x${3:-}" != x && GAWK_COMMAND="$3"
 
 SHDOC="$(dirname "$0")/shdoc"
 
