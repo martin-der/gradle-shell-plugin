@@ -61,7 +61,7 @@ install_scripts() {
 		target="${install_dir}/${target_name}"
 		log_debug "Copy '${f}' => '${target}'"
    		cp -r "${f}" "${target}" || return 1
-	done <<< "$( find ./content/bin  )"
+	done <<< "$( find ./content -mindepth 1 -maxdepth 1 )"
 }
 
 show_readme() {
