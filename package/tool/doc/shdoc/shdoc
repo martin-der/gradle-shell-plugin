@@ -35,20 +35,20 @@ BEGIN {
     styles["github", "anchor", "from"] = ".*"
     styles["github", "anchor", "to"] = "[&](#&)"
 
-    styles["github", "exitcode", "from"] = "([><!]?[0-9]+) (.*)"
-    styles["github", "exitcode", "to"] = "**`\\1`** : \\2"
-    styles["github", "exitcode-range", "from"] = "(\\[([0-9]+)(-([0-9]+))\\]) (.*)"
-    styles["github", "exitcode-range", "to"] = "**`\\2`➔`\\4`** : \\5"
+    styles["github", "exitcode", "from"] = "([><!]?[0-9]+)([ \t]+(.*))?"
+    styles["github", "exitcode", "to"] = "**`\\1`** : \\3"
+    styles["github", "exitcode-range", "from"] = "(\\[([0-9]+)(-([0-9]+))\\])([ \t]+(.*))?"
+    styles["github", "exitcode-range", "to"] = "**`\\2`➔`\\4`** : \\6"
 
 }
 
-function render(type, text) {
-    return gensub( \
-        styles[style, type, "from"],
-        styles[style, type, "to"],
-        "g",
-        text \
-    )
+function init_arg() {
+    if (!has_args) {
+        has_args = 1
+        arg_count = 0
+
+        docblock = docblock "\n" render("h2", "Arguments") "\n\n"
+    }
 }
 
 function init_method() {
@@ -62,6 +62,15 @@ function init_method() {
     in_stdout = 0
 
     docblock = ""
+}
+
+function render(type, text) {
+    return gensub( \
+        styles[style, type, "from"],
+        styles[style, type, "to"],
+        "g",
+        text \
+    )
 }
 
 /^# @description/ {
@@ -99,15 +108,6 @@ in_example {
 
     docblock = docblock "\n" render("h3", "Example")
     docblock = docblock "\n\n" render("code", "bash")
-}
-
-function init_arg() {
-    if (!has_args) {
-        has_args = 1
-        #arg_count = 0
-
-        docblock = docblock "\n" render("h2", "Arguments") "\n\n"
-    }
 }
 
 /^[ \t]*#[ \t]+@arg[ \t]+/ {
@@ -132,240 +132,6 @@ function init_arg() {
     $0 = render("arg@", $0)
 
     docblock = docblock render("li", $0) "\n"
-}
-
-/^# @stdin/ {
-    has_stdin = 1
-
-    sub(/^# @stdin /, "")
-
-    docblock = docblock "\n" render("h2", "Read from stdin")
-    docblock = docblock "\n\n" render("li", $0) "\n"
-}
-
-
-/^[ \t]*#[ \t]+@exitcode[ \t]+/ {
-    if (!has_exitcode) {
-        has_exitcode = 1
-        docblock = docblock "\n" render("h2", "Exit codes") "\n\n"
-    }
-
-    sub(/^#[ \t]*@exitcode[ \t]*/, "")
-
-	if ( $0 ~ /^[ \t]*\[([0-9]+-[0-9]+\])[ \t].*/ ) {
-	    $0 = render("exitcode-range", $0)
-	} else {
-	    $0 = render("exitcode", $0)
-	}
-
-    docblock = docblock render("li", $0) "\n"
-}
-
-/^[ \t]*#[ \t]+@see/ {
-    sub(/^[ \t]*#[ \t]+@see /, "")
-
-    $0 = render("anchor", $0)
-    $0 = render("li", $0)
-
-    docblock = docblock "\n" render("h3", "See also") "\n\n" $0 "\n"
-}
-
-in_stdout {
-    if (/^[^#]|^# @[^d]/) {
-        in_stdout = 0
-    } else {
-        sub(/^[ \t]*#[ \t]+@stdout/, "")
-        sub(/^# /, "")
-        sub(/^#$/, "")
-
-        docblock = docblock "\n" $0
-    }
-}
-
-/^[ \t]*#[ \t]+@stdout/ {
-
-    if (!has_stdout) {
-    	has_stdout = 1
-		in_stdout = 1
-		docblock = docblock "\n" render("h2", "Output on stdout") "\n"
-	}
-}
-
-/^[ \t]*(function[ \t]+)?([a-zA-Z_]+[a-zA-Z01-9_]*)[ \t]*(\([ \t]*\))?[ \t]*\{?[ \t]*$/ && docblock != "" {
-
-	match($0, /^[ \t]*(function[ \t]+)?([a-zA-Z_]+[a-zA-Z01-9_]*)[ \t]*(\([ \t]*\))?[ \t]*\{?[ \t]*$/ , gs)
-	function_name = gs[2]
-
-	if (method_count>0) {
-	    doc = doc "\n----\n"
-	}
-
-	method_count = method_count+1
-
-    sub(/^function /, "")
-
-    doc = doc "\n" render("h1", function_name) "\n" docblock
-
-    url = function_name
-    gsub(/\W/, "", url)
-
-    toc = toc "\n" "* [" function_name "](#" url ")"
-
-    docblock = ""
-}
-
-END {
-	if (method_count>0) {
-		if (script_name != "") {
-			print "# " script_name
-			print ""
-		}
-		print toc
-		print ""
-		print doc
-    }
-}
-#!/usr/bin/awk -f
-
-BEGIN {
-
-	method_count = 0
-
-    if (! style) {
-        style = "github"
-    }
-
-    styles["github", "h1", "from"] = ".*"
-    styles["github", "h1", "to"] = "## &"
-
-    styles["github", "h2", "from"] = ".*"
-    styles["github", "h2", "to"] = "### &"
-
-    styles["github", "h3", "from"] = ".*"
-    styles["github", "h3", "to"] = "#### &"
-
-    styles["github", "code", "from"] = ".*"
-    styles["github", "code", "to"] = "~~~&"
-
-    styles["github", "/code", "to"] = "~~~"
-
-    styles["github", "argN", "from"] = "^([0-9]+)[ \t]+(\\S+)"
-    styles["github", "argN", "to"] = "**$\\1** _\\2_:"
-
-    styles["github", "arg@", "from"] = "^(\\S+)"
-    styles["github", "arg@", "to"] = "**...** _\\1_:"
-
-    styles["github", "li", "from"] = ".*"
-    styles["github", "li", "to"] = "* &"
-
-    styles["github", "anchor", "from"] = ".*"
-    styles["github", "anchor", "to"] = "[&](#&)"
-
-    styles["github", "exitcode", "from"] = "([><!]?[0-9]+)([ \t]+(.*))?"
-    styles["github", "exitcode", "to"] = "**`\\1`** : \\3"
-    styles["github", "exitcode-range", "from"] = "(\\[([0-9]+)(-([0-9]+))\\])([ \t]+(.*))?"
-    styles["github", "exitcode-range", "to"] = "**`\\2`➔`\\4`** : \\6"
-
-}
-
-function render(type, text) {
-    return gensub( \
-        styles[style, type, "from"],
-        styles[style, type, "to"],
-        "g",
-        text \
-    )
-}
-
-function init_method() {
-    in_example = 0
-
-    has_example = 0
-    has_args = 0
-    has_stdin = 0
-    has_exitcode = 0
-    has_stdout = 0
-    in_stdout = 0
-
-    docblock = ""
-}
-
-/^# @description/ {
-    in_description = 1
-    init_method()
-}
-
-in_description {
-    if (/^[^#]|^# @[^d]/) {
-        in_description = 0
-    } else {
-        sub(/^# @description /, "")
-        sub(/^# /, "")
-        sub(/^#$/, "")
-
-        docblock = docblock "\n" $0
-    }
-}
-
-in_example {
-    if (! /^#[ ]{3}/) {
-        in_example = 0
-
-        docblock = docblock "\n" render("/code") "\n"
-    } else {
-        sub(/^#[ ]{3}/, "")
-
-        docblock = docblock "\n" $0
-    }
-}
-
-
-/^# @example/ {
-    in_example = 1
-
-    docblock = docblock "\n" render("h3", "Example")
-    docblock = docblock "\n\n" render("code", "bash")
-}
-
-function init_arg() {
-    if (!has_args) {
-        has_args = 1
-        arg_count = 0
-
-        docblock = docblock "\n" render("h2", "Arguments") "\n\n"
-    }
-}
-
-/^[ \t]*#[ \t]+@arg[ \t]+/ {
-
-	init_arg()
-
-	if ( has_args < 2 ) {
-
-		sub(/^[ \t]*#[ \t]+@arg /, "")
-
-		$0 = render("argN", (arg_count+1) " " $0)
-
-		arg_count = arg_count+1
-
-		docblock = docblock render("li", $0) "\n"
-    }
-}
-
-/^[ \t]*#[ \t]+@args[ \t]+/ {
-
-	init_arg()
-
-	if ( has_args < 2 ) {
-
-		sub(/^[ \t]*#[ \t]+@args[ \t]+/, "")
-
-		$0 = render("arg@", $0)
-
-		docblock = docblock render("li", $0) "\n"
-
-		has_args = 2
-	}
 }
 
 /^# @stdin/ {
