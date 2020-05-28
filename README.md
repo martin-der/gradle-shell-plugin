@@ -9,14 +9,16 @@ Gradle plugins for script (bash) unit testing and packaging
 
 Plugins are available from [jitpack](https://jitpack.io). So add its repository as dependency into your `build.gradle`:
 
-```
+~~~
 buildscript{
 	repositories{
-		// ... other repositories
 		maven { url 'https://jitpack.io' }
 	}
+	dependencies {
+		classpath "com.github.martin-der.gradle-shell-plugin:shell:<latest-version>"
+	}
 }
-```
+~~~
 
 ### Package
 
@@ -24,27 +26,53 @@ buildscript{
 
 Apply the plugin :
 
-```
+~~~
 apply plugin: 'net.tetrakoopa.shell-package'
-```
+~~~
 
-In order to configure package creation just add this configuration to the `build.gradle` file :
+This is the setup for package creation :
 
-```groovy
+~~~groovy
 shell_package {
 
-	from fileTree("src").include('*.sh')
-	from fileTree(".").include('README.md')
-
-	installer {
-		readme.location = 'README.md'
+	source {
+		from ("src") {
+			into "bin"
+			include('**/*.sh')
+		}
+		from file('README.md')
 	}
 }
-```
+~~~
+
+then run `gradle shell-build`
+
+Show a banner when running the self-extracting archive
+~~~groovy
+shell_package {
+	...
+	banner {
+		content.path = file('package/banner.txt')
+	}
+
+}
+~~~
+
+Optionally execute a script after a successful installation
+~~~groovy
+shell_package {
+	...
+	userScript {
+		script.location = "bin/home-init"
+		question = "Do you want to init home (i.e. run 'home-init')?"
+	}
+}
+~~~
+
 
 #### Execution
 
-Call `gradle packages` to generate documentation then create a zip archive and an installer.
+Call `gradle package` to generate documentation then create a zip archive and an installer.
 
 ### Test
 
@@ -52,40 +80,40 @@ Call `gradle packages` to generate documentation then create a zip archive and a
 
 Apply the plugin :
 
-```
+~~~
 apply plugin: 'net.tetrakoopa.shell-test'
-```
+~~~
 
-In order to configure project testing, add this code in the `build.gradle` file :
+Test configuration is done by adding a collection of test script
 
-```groovy
+~~~groovy
 shell_test {
 	from fileTree("test").include('*.sh')
 	workingDir = project.file("test")
 }
-```
+~~~
 
 You are now ready to create tests in the directory 'test'.
 
-See [test plugin README](test/REAME.md) for explanations about writing test.
+See [test plugin README](test/README.md) for explanations about writing test.
 
 #### Execution
 
 Call `gradle shell-test` to run all test.
 
-If the [shellcheck](https://www.shellcheck.net/) command if accessible in the PATH, it is possible to generate reports about scripts. 
 
-First, explicit what are the main script.
-
-```
+~~~groovy
 shell_test {
 	from fileTree("test").include('*.sh')
-	// Added the main scripts !
-	scriptFrom fileTree("src").include('*.sh')
 	workingDir = project.file("test")
-}
-```
 
-Then call `gradle shell-check` to get report about the scripts.
+	naming {
+        // will remove the '.sh' part from the generated test task name
+		removeSuffix = true
+	}
+
+}
+~~~
+
 
 
