@@ -21,6 +21,7 @@ compileGroovy.doFirst {
 }
 
 dependencies {
+	compile "com.github.martin-der.poignee:common-project:${property('version.martin-der.poignee')}"
 	compile project(':common')
 }
 
