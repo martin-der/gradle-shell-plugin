@@ -13,8 +13,6 @@ buildscript{
 	}
 }
 
-version '0.1-SNAPSHOT'
-
 apply plugin: 'net.tetrakoopa.bundled-resources'
 
 compileGroovy.doFirst {

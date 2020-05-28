@@ -13,10 +13,30 @@ allprojects {
 	}
 }
 
+buildscript {
+	repositories {
+		mavenCentral()
+		mavenLocal()
+		maven { url 'https://jitpack.io' }
+	}
+
+	dependencies {
+		classpath "com.github.martin-der.poignee:util:${property('version.martin-der.poignee')}"
+	}
+}
+
+apply plugin: 'net.tetrakoopa.util'
+
+
+version VERSION_MAPPER.DROP_LEADING_V(gitVersionName())
+
 subprojects {
 
 	apply plugin: 'maven'
 	apply plugin: 'groovy'
+	apply plugin: 'net.tetrakoopa.util'
+
+	version VERSION_MAPPER.DROP_LEADING_V(gitVersionName())
 
 	dependencies {
 		testCompile('org.spockframework:spock-core:1.1-groovy-2.4') {
