@@ -3,7 +3,7 @@ package net.tetrakoopa.gradle.plugin.shell.packaage
 import net.tetrakoopa.gradle.plugin.common.file.PathOrContentLocation
 import net.tetrakoopa.gradle.plugin.shell.common.AbstractShellProjectPlugin
 import net.tetrakoopa.gradle.plugin.shell.packaage.ShellPackagePluginExtension.Information
-import net.tetrakoopa.gradle.plugin.shell.packaage.exception.ShellPackageException
+import net.tetrakoopa.gradle.plugin.shell.packaage.exception.ShellPackagePluginException
 import net.tetrakoopa.gradle.plugin.shell.packaage.extension.documentation.Documentation
 import net.tetrakoopa.gradle.plugin.shell.packaage.extension.documentation.Lot.ToDocumentationConverter
 import net.tetrakoopa.gradle.plugin.shell.packaage.extension.documentation.implementation.ShellCommentToMarkdown
@@ -127,7 +127,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 		ShellPackagePluginExtension shell_package = (ShellPackagePluginExtension) project.getExtensions().findByName(SHELL_PACKAGE_EXTENSION_NAME)
 		if (shell_package.ready) return
 		shell_package.ready = true
-		if (shell_package.source == null) throw new ShellPackageException("No source file(s) defined")
+		if (shell_package.source == null) throw new ShellPackagePluginException("No source file(s) defined")
 		if (shell_package.distributionName == null) shell_package.distributionName = "${project.name}-${project.version}"
 		if (shell_package.version == null) shell_package.version = project.version
 		if (shell_package.output.distributionDir == null) shell_package.output.distributionDir = project.buildDir
@@ -234,7 +234,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 								try {
 									converter.convert(project, details.originalName, script, document)
 								} catch (Exception ex) {
-									throw new ShellPackageException("Document '${script.absolutePath}' creation failed : "+ex.getMessage(), ex)
+									throw new ShellPackagePluginException("Document '${script.absolutePath}' creation failed : "+ex.getMessage(), ex)
 								}
 
 								// Remove the documentation if it's empty
@@ -310,7 +310,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 					ResourceHelper.addCopyAll(shell_package.installer.installSpecs)
 				}
 
-				InstallerHelper.addRules(internal.sourceDetails, shell_package.installer.installSpecs, new File(internal.installerFilesRootDir,'rules'))
+				InstallerHelper.addComponents(internal.sourceDetails, shell_package.installer.installSpecs, new File(internal.installerFilesRootDir,'components'))
 
 				InstallerHelper.addScripts(internal, project)
 

@@ -1,7 +1,7 @@
 package net.tetrakoopa.gradle.plugin.shell.packaage.extension.documentation.implementation
 
-import net.tetrakoopa.gradle.plugin.common.exception.PluginException
 import net.tetrakoopa.gradle.plugin.shell.packaage.ShellPackagePlugin
+import net.tetrakoopa.gradle.plugin.shell.packaage.exception.ShellPackagePluginException
 import net.tetrakoopa.gradle.plugin.shell.packaage.extension.documentation.Lot
 import net.tetrakoopa.poignee.bundledresources.BundledResourcesPlugin
 import org.gradle.api.Project
@@ -25,7 +25,7 @@ class ShellCommentToMarkdown implements Lot.ToDocumentationConverter {
 				errorOutput = errOs
 			}
 		} catch (Exception exception) {
-			throw new PluginException('Failed to convert comment to markdown :\n'+errOs.toString(), exception);
+			throw new ShellPackagePluginException('Failed to convert comment to markdown :\n'+errOs.toString(), exception);
 		}
 	}
 

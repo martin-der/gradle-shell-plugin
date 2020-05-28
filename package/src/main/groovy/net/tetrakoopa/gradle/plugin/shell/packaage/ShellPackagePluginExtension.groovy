@@ -2,7 +2,7 @@ package net.tetrakoopa.gradle.plugin.shell.packaage
 
 import net.tetrakoopa.gradle.plugin.common.file.DefaultPathOrContentLocation
 import net.tetrakoopa.gradle.plugin.common.file.PathOrContentLocation
-import net.tetrakoopa.gradle.plugin.shell.packaage.exception.ShellPackageException
+import net.tetrakoopa.gradle.plugin.shell.packaage.exception.ShellPackagePluginException
 import net.tetrakoopa.gradle.plugin.shell.packaage.extension.documentation.Documentation
 import net.tetrakoopa.gradle.plugin.shell.packaage.resource.DefaultInstallSpec
 import net.tetrakoopa.gradle.plugin.shell.packaage.resource.InstallSpec
@@ -72,8 +72,8 @@ class ShellPackagePluginExtension {
 		def component(Closure closure) {
 			InstallSpec spec = ConfigureUtil.configure(closure, new DefaultInstallSpec())
 			if (spec.importance == null) spec.importance = InstallSpec.Importance.MANDATORY
-			if (!spec.name) throw new ShellPackageException("Component must be named")
-			if (installSpecs.any({s -> s.name == spec.name})) throw new ShellPackageException("A component named '${spec.name}' already exists")
+			if (!spec.name) throw new ShellPackagePluginException("Component must be named")
+			if (installSpecs.any({s -> s.name == spec.name})) throw new ShellPackagePluginException("A component named '${spec.name}' already exists")
 			installSpecs.add(spec)
 		}
 

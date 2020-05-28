@@ -18,19 +18,19 @@ class InstallerHelper {
 
 	}
 
-	static addRules(List<FileCopyDetails> sourceDetails, List<InstallSpec> installSpecs, File installerRulesDir) {
+	static addComponents(List<FileCopyDetails> sourceDetails, List<InstallSpec> installSpecs, File installerComponentsDir) {
 		installSpecs.each {
 			installSpec ->
-				File ruleDir = new File(installerRulesDir,installSpec.name)
-				ruleDir.mkdirs()
+				File componentDir = new File(installerComponentsDir,installSpec.name)
+				componentDir.mkdirs()
 
-				MultilinePropertyWriter headerWriter = new MultilinePropertyWriter(new File(ruleDir, 'header'), 'utf-8')
+				MultilinePropertyWriter headerWriter = new MultilinePropertyWriter(new File(componentDir, 'header'), 'utf-8')
 				headerWriter.appendProperty('importance', installSpec.importance.name())
 				headerWriter.appendProperty('description', installSpec.description)
 				headerWriter.close()
 
 				//if (header.exists()) header.delete()
-				MultilinePropertyWriter copyWriter = new MultilinePropertyWriter(new File(ruleDir, 'copy'), 'utf-8')
+				MultilinePropertyWriter copyWriter = new MultilinePropertyWriter(new File(componentDir, 'copy'), 'utf-8')
 				boolean first = true
 
 				sourceDetails.forEach { FileCopyDetails fileCopyDetails ->
