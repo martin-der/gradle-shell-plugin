@@ -21,8 +21,8 @@ class ShellPackagePluginExtension {
 		this.project = project
 	}
 	class Output {
-		File distributionDir
-		File documentationDir
+		File distributionDirectory
+		File documentationDirectory
 	}
 	class Banner {
 		final PathOrContentLocation content = new DefaultPathOrContentLocation()

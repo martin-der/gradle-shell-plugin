@@ -38,6 +38,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 	public static final String TASK_NAME_PACKAGE_TGZ = "packageTgz"
 	public static final String TASK_NAME_PACKAGES = "package"
 	public static final String TASK_NAME_INSTALLER = "installer"
+	public static final String TASK_NAME_EXECUTABLE_INSTALLER = "executableInstaller"
 	public static final String TASK_PREPARE = "shell-package_common"
 
 	interface BannerLineReplacer {
@@ -48,7 +49,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 		Date buildDate
 		File toolResourcesDir
 		File workingDir
-		File intermediateSourcesDir
+		File intermediateSourcesDirectory
 		File installerFilesRootDir
 		ConfigurableFileCollection intermediateSources
 		final List<FileCopyDetails> sourceDetails = new ArrayList<>()
@@ -119,8 +120,8 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 		shell_package.installer.readme.location = shell_package.installer.readme.path = null
 		shell_package.installer.userScript.script.location = shell_package.installer.userScript.script.path = null
 		shell_package.installer.userScript.question = null
-		shell_package.output.distributionDir = null
-		shell_package.output.documentationDir = null
+		shell_package.output.distributionDirectory = null
+		shell_package.output.distributionDirectory = null
 	}
 
 	private static void makeShellPackageConfiguration(Project project) {
@@ -130,8 +131,8 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 		if (shell_package.source == null) throw new ShellPackagePluginException("No source file(s) defined")
 		if (shell_package.distributionName == null) shell_package.distributionName = "${project.name}-${project.version}"
 		if (shell_package.version == null) shell_package.version = project.version
-		if (shell_package.output.distributionDir == null) shell_package.output.distributionDir = project.buildDir
-		if (shell_package.output.documentationDir == null) shell_package.output.documentationDir = new File(project.buildDir.absolutePath + '/doc')
+		if (shell_package.output.distributionDirectory == null) shell_package.output.distributionDirectory = project.buildDir
+		if (shell_package.output.distributionDirectory == null) shell_package.output.distributionDirectory = new File(project.buildDir.absolutePath + '/doc')
 	}
 
 	void apply(Project project) {
@@ -150,7 +151,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 			internal.buildDate = new Date()
 			internal.toolResourcesDir = BundledResourcesPlugin.unpackBundledResources(project, ID, "tool")
 			internal.workingDir = project.file("${project.buildDir}/n4k-shell")
-			internal.intermediateSourcesDir = new File(internal.workingDir.absolutePath + '/intermediateSources')
+			internal.intermediateSourcesDirectory = new File(internal.workingDir.absolutePath + '/intermediateSources')
 
 			internal.descriptionValues.put('version', project.shell_package.version)
 			final Information information = project.shell_package.information
@@ -178,20 +179,20 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 		final Project project = context.project
 		final Internal internal = context.internal
 
-		def taskPrepareSources = project.task(TASK_PREPARE) {
+		def prepareSourcesTask = project.task(TASK_PREPARE) {
 
 			ext.inputFiles = shell_package.source
 
 			doLast {
 				project.copy {
 					with shell_package.source
-					into internal.intermediateSourcesDir
+					into internal.intermediateSourcesDirectory
 				}
-				internal.intermediateSources = project.files(internal.intermediateSourcesDir)
+				internal.intermediateSources = project.files(internal.intermediateSourcesDirectory)
 			}
 		}
 
-		def taskDocumentation = project.task(TASK_NAME_DOCUMENTATION, dependsOn: taskPrepareSources) {
+		def documentationTask = project.task(TASK_NAME_DOCUMENTATION, dependsOn: prepareSourcesTask) {
 
 			ext.inputFiles = shell_package.source
 
@@ -202,7 +203,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 				final Documentation documentation = shell_package.documentation
 
 				documentation.lots.forEach { lot ->
-					File outputDir = lot.outputDir ?: shell_package.output.documentationDir
+					File outputDir = lot.outputDir ?: shell_package.output.distributionDirectory
 
 					if (!outputDir.exists()) outputDir.mkdirs()
 
@@ -217,7 +218,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 
 							final RelativePath relativeSourcePath = details.relativeSourcePath
 
-							File file = relativeSourcePath.getFile(internal.intermediateSourcesDir)
+							File file = relativeSourcePath.getFile(internal.intermediateSourcesDirectory)
 
 							if (true /* documentation.lot.eachFile != null */) {
 
@@ -251,41 +252,35 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 			}
 		}
 
-		def taskPackageZip = project.task(TASK_NAME_PACKAGE_ZIP, type: Zip, dependsOn: [taskPrepareSources, taskDocumentation]) {
-			ext.inputFiles = shell_package.source
+		def packageZipTask = project.task(TASK_NAME_PACKAGE_ZIP, type: Zip, dependsOn: [prepareSourcesTask, documentationTask]) {
 
-			doLast {
-				baseName = shell_package.distributionName
-				with shell_package.source
+			archiveBaseName = shell_package.distributionName
+			from internal.intermediateSourcesDirectory
 
-				destinationDir = shell_package.output.distributionDir
-			}
+			destinationDirectory = shell_package.output.distributionDirectory
 		}
 
-		def taskPackageTGZ = project.task(TASK_NAME_PACKAGE_TGZ, type: Tar, dependsOn: [taskPrepareSources, taskDocumentation]) {
-			ext.inputFiles = shell_package.source
+		def packageTGZTask = project.task(TASK_NAME_PACKAGE_TGZ, type: Tar, dependsOn: [prepareSourcesTask, documentationTask]) {
 
-			doLast {
-				baseName = shell_package.distributionName
-				with shell_package.source
+			archiveBaseName = shell_package.distributionName
+			from internal.intermediateSourcesDirectory
 
-				destinationDir = project.file(shell_package.output.distributionDir)
+			destinationDirectory = project.file(shell_package.output.distributionDirectory)
 
-				compression = Compression.GZIP
-				extension = 'tar.gz'
-			}
+			compression = Compression.GZIP
+			archiveExtension = 'tar.gz'
 		}
 
-		def taskInstaller = project.task(TASK_NAME_INSTALLER, dependsOn: taskPrepareSources) {
+		final String installerWorkingDir = "${internal.workingDir}/installer"
+		final File sharFile = project.file("${installerWorkingDir}/${shell_package.distributionName}.shar")
+
+		def installerTask = project.task(TASK_NAME_INSTALLER, dependsOn: prepareSourcesTask) {
 
 			doLast {
 
-				String installerWorkingDir = "${internal.workingDir}/installer"
 				internal.installerFilesRootDir = context.project.file("${installerWorkingDir}/files")
 
 				if (!existsInPath("shar")) throw new IllegalStateException("Task '${TASK_NAME_INSTALLER}' requires command 'shar'")
-
-				def sharFile = project.file("${installerWorkingDir}/${shell_package.distributionName}.shar")
 
 				project.copy {
 					from internal.intermediateSources
@@ -329,7 +324,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 					standardOutput = new FileOutputStream(sharFile)
 				}
 
-				def autoInstallerFile = project.file("${shell_package.output.distributionDir}/${shell_package.distributionName}.run")
+				def autoInstallerFile = project.file("${shell_package.output.distributionDirectory}/${shell_package.distributionName}.run")
 				if (autoInstallerFile.exists()) autoInstallerFile.delete()
 
 				autoInstallerFile.append(new File("${internal.toolResourcesDir}/install/template/extract-pre.sh").text)
@@ -353,9 +348,16 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 
 		}
 
-		def taskPackage = project.task(TASK_NAME_PACKAGES, dependsOn: [taskPackageTGZ, taskPackageZip, taskInstaller])
+		def executableInstallerTask = project.task(TASK_NAME_EXECUTABLE_INSTALLER, dependsOn: installerTask) {
+			project.exec {
+				commandLine 'chmod', '+x', sharFile.absolutePath
+			}
+		}
 
-		project.task('shell-build', dependsOn: [taskDocumentation, taskPackage, taskInstaller]) {}
+
+		def packageTask = project.task(TASK_NAME_PACKAGES, dependsOn: [packageTGZTask, packageZipTask, installerTask])
+
+		project.task('shell-build', dependsOn: [documentationTask, packageTask, installerTask]) {}
 	}
 
 	private String getSharVersion(project) {
