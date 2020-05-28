@@ -210,39 +210,41 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 
 					converter.construct(project)
 
-					internal.sourceDetails.forEach { FileCopyDetails fileCopyDetails ->
+					try {
+						internal.sourceDetails.forEach { FileCopyDetails fileCopyDetails ->
 
-						final UseFileDetails details = CommonPackageHelper.useFileDetails(fileCopyDetails, lot.into)
+							final UseFileDetails details = CommonPackageHelper.useFileDetails(fileCopyDetails, lot.into)
 
-						final RelativePath relativeSourcePath = details.relativeSourcePath
+							final RelativePath relativeSourcePath = details.relativeSourcePath
 
-						File file = relativeSourcePath.getFile(internal.intermediateSourcesDir)
+							File file = relativeSourcePath.getFile(internal.intermediateSourcesDir)
 
-						if (true /* documentation.lot.eachFile != null */) {
+							if (true /* documentation.lot.eachFile != null */) {
 
-							if (!details.originalName.endsWith(".sh"))
-								details.exclude()
-						}
-
-						if (!details.excluded) {
-							File document = details.relativePath.getFile(outputDir)
-							File script = file
-							document = new File(document.absolutePath + '.md')
-							document.parentFile.mkdirs()
-
-							try {
-								converter.convert(project, details.originalName, script, document)
-							} catch (Exception ex) {
-								throw new ShellPackageException("Document '${script.absolutePath}' creation failed : "+ex.getMessage(), ex)
+								if (!details.originalName.endsWith(".sh"))
+									details.exclude()
 							}
 
-							// Remove the documentation if it's empty
-							if (!lot.keepBlankFile)
-								if (!(document.length() > 0) || document.text.matches("^[\n \t]*\$")) document.delete()
-						}
-					}
+							if (!details.excluded) {
+								File document = details.relativePath.getFile(outputDir)
+								File script = file
+								document = new File(document.absolutePath + '.md')
+								document.parentFile.mkdirs()
 
-					converter.destroy(project)
+								try {
+									converter.convert(project, details.originalName, script, document)
+								} catch (Exception ex) {
+									throw new ShellPackageException("Document '${script.absolutePath}' creation failed : "+ex.getMessage(), ex)
+								}
+
+								// Remove the documentation if it's empty
+								if (!lot.keepBlankFile)
+									if (!(document.length() > 0) || document.text.matches("^[\n \t]*\$")) document.delete()
+							}
+						}
+					} finally {
+						converter.destroy(project)
+					}
 
 				}
 
