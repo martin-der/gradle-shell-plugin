@@ -147,7 +147,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 				projectTrimmedName = projectTrimmedName - FILENAME_SUFFIX_REGEX
 			String simple_testname = projectTrimmedName
 
-			String testname = projectTrimmedName.replaceAll("/",";")
+			String testname = projectTrimmedName.replaceAll('/','.')
 			if (project.shell_test.naming.prefix)
 				testname = project.shell_test.naming.prefix + testname
 
@@ -181,7 +181,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 				projectTrimmedName = projectTrimmedName - FILENAME_SUFFIX_REGEX
 			String simple_testname = projectTrimmedName
 
-			String checkname = projectTrimmedName.replaceAll("/",";")
+			String checkname = projectTrimmedName.replaceAll('/','.')
 			if (project.shell_test.check.naming.prefix)
 				checkname = project.shell_test.check.naming.prefix + checkname
 
