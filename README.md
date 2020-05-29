@@ -1,6 +1,8 @@
 Gradle Shell Plugin
 ===================
 
+[![](https://jitpack.io/v/net.tetrakoopa/gradle-shell-plugin.svg)](https://jitpack.io/#net.tetrakoopa/gradle-shell-plugin)
+
 ## About
 
 Gradle plugins for script (bash) unit testing and packaging
