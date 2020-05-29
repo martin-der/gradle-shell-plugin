@@ -77,6 +77,8 @@ class ShellPackagePluginExtension {
 			installSpecs.add(spec)
 		}
 
+		boolean makeExecutable
+
 		def userScript(Closure closure) { ConfigureUtil.configure(closure, userScript) }
 		def readme(Closure closure) { readme.__configure(closure, "installer readme")}
 		def licence(Closure closure) { ConfigureUtil.configure(closure, licence) }

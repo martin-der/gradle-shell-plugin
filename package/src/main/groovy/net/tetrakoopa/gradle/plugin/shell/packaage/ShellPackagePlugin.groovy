@@ -344,16 +344,14 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 				autoInstallerFile.append(cleanShar(sharFile.text))
 				autoInstallerFile.append(new File("${internal.toolResourcesDir}/install/template/extract-post.sh").text)
 
+				if (shell_package.installer.makeExecutable) {
+					project.exec {
+						commandLine 'chmod', '+x', sharFile.absolutePath
+					}
+				}
 			}
 
 		}
-
-		def executableInstallerTask = project.task(TASK_NAME_EXECUTABLE_INSTALLER, dependsOn: installerTask) {
-			project.exec {
-				commandLine 'chmod', '+x', sharFile.absolutePath
-			}
-		}
-
 
 		def packageTask = project.task(TASK_NAME_PACKAGES, dependsOn: [packageTGZTask, packageZipTask, installerTask])
 
