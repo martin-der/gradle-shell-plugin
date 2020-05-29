@@ -128,7 +128,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 		ShellPackagePluginExtension shell_package = (ShellPackagePluginExtension) project.getExtensions().findByName(SHELL_PACKAGE_EXTENSION_NAME)
 		if (shell_package.ready) return
 		shell_package.ready = true
-		if (shell_package.source == null) throw new ShellPackagePluginException("No source file(s) defined")
+		if (shell_package.source == null) throw new ShellPackagePluginException("No source file defined")
 		if (shell_package.distributionName == null) shell_package.distributionName = "${project.name}-${project.version}"
 		if (shell_package.version == null) shell_package.version = project.version
 		if (shell_package.output.distributionDirectory == null) shell_package.output.distributionDirectory = project.buildDir
