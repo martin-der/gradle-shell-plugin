@@ -11,8 +11,7 @@ buildscript{
 	}
 
 	dependencies {
-//		classpath "net.tetrakoopa.poignee:bundled-resources:${property('version.martin-der.poignee')}"
-		classpath "com.github.martin-der.poignee:bundled-resources:${property('version.martin-der.poignee')}"
+		classpath "net.tetrakoopa.poignee:bundled-resources:${property('version.martin-der.poignee')}"
 	}
 }
 

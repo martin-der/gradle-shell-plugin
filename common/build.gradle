@@ -10,8 +10,6 @@ compileGroovy.doFirst {
 }
 
 dependencies {
-	compile "com.github.martin-der.poignee:common-project:${property('version.martin-der.poignee')}"
-	compile "com.github.martin-der.poignee:bundled-resources:${property('version.martin-der.poignee')}"
-//	compile "net.tetrakoopa.poignee:common-project:${property('version.martin-der.poignee')}"
-//	compile "net.tetrakoopa.poignee:bundled-resources:${property('version.martin-der.poignee')}"
+	compile "net.tetrakoopa.poignee:common-project:${property('version.martin-der.poignee')}"
+	compile "net.tetrakoopa.poignee:bundled-resources:${property('version.martin-der.poignee')}"
 }
