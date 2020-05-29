@@ -1,25 +1,17 @@
-//apply plugin: 'maven'
-//apply plugin: 'maven-publish'
-//apply plugin: 'java'
 apply plugin: 'net.tetrakoopa.shell-package'
 
-group = 'testGrp'
+group = 'testGrp.ab'
 version = '42'
 
 repositories {
 	mavenLocal()
 }
 
-//publishing {
-//	publications {
-//		mavenStuff(MavenPublication) {
-//			artifact file("${projectDir}/../inputfiles/artifact.war")
-//		}
-//	}
-//}
 
 shell_package {
-	from project.fileTree("src").include('*.sh', '*.py', 'README.md')
+	source {
+		from project.fileTree("src").include('*.sh')
+	}
 
 //	installer {
 //		readme.location = 'README.md'

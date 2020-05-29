@@ -1,5 +1,6 @@
 package net.tetrakoopa.gradle.plugin.shell.packaage
 
+import net.tetrakoopa.poignee.bundledresources.BundledResourcesPlugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.testfixtures.ProjectBuilder
@@ -17,16 +18,49 @@ class ShellPackagePluginTest extends Specification {
 	@Shared
 	def buildDir
 
+	@Shared
+	String testedProjectBuildDir
+	@Shared
+	String bundledZipAbsolutePath
+
+	def setupSpec() {
+
+
+		// This an awful way the find project build directory
+		testedProjectBuildDir = ShellPackagePluginTest.class.protectionDomain.codeSource.location.path+'../../../build';
+		testedProjectBuildDir = System.getenv('net.tetrakoopa.shell-package.project.buildDir')
+		if (testedProjectBuildDir == null) throw new NullPointerException()
+
+		bundledZipAbsolutePath = testedProjectBuildDir+'/net.tetrakoopa.bundled-resources/net.tetrakoopa.shell-package.tool.zip'
+	}
+	def cleanupSpec() {
+
+	}
 	def setup() {
 		URL resource = getClass().getResource('/gradle/packaged-project/build.gradle')
 		projectDir = new File(resource.toURI()).getParentFile()
 		project = ProjectBuilder.builder().withName('project').withProjectDir(projectDir).build()
 		buildDir = Files.createTempDirectory("Project.buildDir")
+		project.setBuildDir(buildDir)
+		prepareBundledResources(project)
+	}
+	def cleanup() {
+	}
+
+	private void prepareBundledResources(Project project) {
+		BundledResourcesPlugin.unpackBundledResourcesUsingThisZip(project, ShellPackagePlugin.ID, 'tool', new File(bundledZipAbsolutePath))
 	}
 
 	def "no ShellPackagePluginExtension is registered by default"() {
 		expect:
 			!project.extensions.findByType(ShellPackagePluginExtension)
+	}
+
+	def "no packaging tasks are registered by default"() {
+		expect:
+			!project.tasks.findByName(ShellPackagePlugin.TASK_NAME_INSTALLER)
+			!project.tasks.findByName(ShellPackagePlugin.TASK_NAME_DOCUMENTATION)
+			!project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
 	}
 
 	def "ShellPackagePluginExtension is registered on project evaluation"() {
@@ -38,26 +72,19 @@ class ShellPackagePluginTest extends Specification {
 
 	def "ShellPackagePluginExtension is registered as 'shell_package'"() {
 		when: "plugin applied to project"
-		project.evaluate()
-		assert ShellPackagePluginExtension.SHELL_PACKAGE_EXTENSION_NAME == 'shell_package'
+			project.evaluate()
+			assert ShellPackagePluginExtension.SHELL_PACKAGE_EXTENSION_NAME == 'shell_package'
 		then:
-		project.extensions.findByName('shell_package') in ShellPackagePluginExtension
-	}
-
-	def "no packaging tasks are registered by default"() {
-		expect:
-		!project.tasks.findByName(ShellPackagePlugin.TASK_NAME_INSTALLER)
-		!project.tasks.findByName(ShellPackagePlugin.TASK_NAME_DOCUMENTATION)
-		!project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
+			project.extensions.findByName('shell_package') in ShellPackagePluginExtension
 	}
 
 	def "packaging tasks are registered on project evaluation"() {
 		when: "plugin applied to project"
-		project.evaluate()
+			project.evaluate()
 		then: "there are a packaging tasks registered"
-		project.tasks.findByName(ShellPackagePlugin.TASK_NAME_INSTALLER)
-		project.tasks.findByName(ShellPackagePlugin.TASK_NAME_DOCUMENTATION)
-		project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
+			project.tasks.findByName(ShellPackagePlugin.TASK_NAME_INSTALLER)
+			project.tasks.findByName(ShellPackagePlugin.TASK_NAME_DOCUMENTATION)
+			project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
 	}
 
 //	def "packaging tasks  registered as '...'"() {
@@ -85,25 +112,27 @@ class ShellPackagePluginTest extends Specification {
 
 	def "packageZip is dependent on documentation Task"() {
 		when: "project example project is evaluated"
-		Project project = ProjectBuilder.builder().withProjectDir(projectDir).build()
-		project.evaluate()
+			Project project = ProjectBuilder.builder().withProjectDir(projectDir).build()
+			prepareBundledResources(project)
+			project.evaluate()
 		then:
-		Task packageZipTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
-		Task documentationTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_DOCUMENTATION)
-		packageZipTask.taskDependencies.getDependencies(packageZipTask).contains(documentationTask)
+			Task packageZipTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
+			Task documentationTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_DOCUMENTATION)
+			packageZipTask.taskDependencies.getDependencies(packageZipTask).contains(documentationTask)
 	}
 
 	def "task 'packages' depends on packageZip and packageTgz Tasks"() {
 		when: "project example project is evaluated"
-		Project project = ProjectBuilder.builder().withProjectDir(projectDir).build()
-		project.evaluate()
+			Project project = ProjectBuilder.builder().withProjectDir(projectDir).build()
+			prepareBundledResources(project)
+			project.evaluate()
 		then:
-		Task packagesTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGES)
-		Task packageZipTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
-		Task packageTgzTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_TGZ)
-		def dependencies = packagesTask.taskDependencies.getDependencies(packagesTask)
-		dependencies.contains(packageZipTask)
-		dependencies.contains(packageTgzTask)
+			Task packagesTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGES)
+			Task packageZipTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
+			Task packageTgzTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_TGZ)
+			def dependencies = packagesTask.taskDependencies.getDependencies(packagesTask)
+			dependencies.contains(packageZipTask)
+			dependencies.contains(packageTgzTask)
 	}
 
 	/*def "documentation create a directory with two files"() {
