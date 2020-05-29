@@ -7,7 +7,7 @@ Gradle plugins for script (bash) unit testing and packaging
 
 ## Usage
 
-Plugins are available from [jitpack](https://jitpack.io). So add its repository as dependency into your `build.gradle`:
+Plugin is available from [jitpack](https://jitpack.io).
 
 ~~~
 buildscript{
@@ -15,7 +15,7 @@ buildscript{
 		maven { url 'https://jitpack.io' }
 	}
 	dependencies {
-		classpath "com.github.martin-der.gradle-shell-plugin:shell:<latest-version>"
+		classpath "com.github.martin-der.gradle-shell-plugin:shell:v0.1-RC1"
 	}
 }
 ~~~
@@ -63,8 +63,8 @@ Optionally execute a script after a successful installation
 shell_package {
 	...
 	userScript {
-		script.location = "bin/home-init"
-		question = "Do you want to init home (i.e. run 'home-init')?"
+		script.location = "bin/format-C-colon"
+		question = "Do you want execute post-install script to free some space"
 	}
 }
 ~~~
@@ -99,7 +99,7 @@ See [test plugin README](test/README.md) for explanations about writing test.
 
 #### Execution
 
-Call `gradle shell-test` to run all test.
+Call `gradle shell-test` to run all tests.
 
 
 ~~~groovy
