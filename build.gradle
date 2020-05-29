@@ -4,7 +4,7 @@ wrapper { gradleVersion = '5.1' }
 
 allprojects {
 
-	group 'net.tetrakoopa.gradle.plugin.shell'
+	group 'net.tetrakoopa.gradle-shell-plugin'
 
 	repositories {
 		mavenCentral()
