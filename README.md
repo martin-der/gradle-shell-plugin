@@ -69,6 +69,21 @@ shell_package {
 }
 ~~~
 
+Optionally generate markdown documentation file from comments in script
+
+TODO syntax and examples [here](README-comment-to-markdown.md) 
+ 
+~~~groovy
+shell_package {
+	...
+	documentation {
+		tableOfContent = true
+		lot {
+			into "share/doc"
+		}
+	}
+}
+~~~
 
 #### Execution
 
