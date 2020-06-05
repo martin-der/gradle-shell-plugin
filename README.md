@@ -22,7 +22,7 @@ buildscript{
 }
 ~~~
 
-### Package
+### :package: Package
 
 #### Setup
 
@@ -95,7 +95,7 @@ shell_package {
 
 Call `gradle package` to generate documentation then create a zip archive and an installer.
 
-### Test
+### :microscope: Test
 
 #### Setup
 
