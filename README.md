@@ -64,10 +64,12 @@ Optionally execute a script after a successful installation
 ~~~groovy
 shell_package {
 	...
-	userScript {
-		script.location = "bin/format-C-colon"
-		question = "Do you want execute post-install script to free some space"
-	}
+	installer {
+        userScript {
+            script.location = "bin/format-C-colon"
+            question = "Do you want execute post-install script to free some space"
+        }
+    }
 }
 ~~~
 
