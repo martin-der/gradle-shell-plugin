@@ -1,7 +1,7 @@
 package net.tetrakoopa.gradle.plugin.shell.test
 
 import net.tetrakoopa.gradle.plugin.shell.common.AbstractShellProjectPlugin
-import net.tetrakoopa.gradle.plugin.shell.test.task.CheckChecksResultsTask
+import net.tetrakoopa.gradle.plugin.shell.test.task.RunChecksResultsTask
 import net.tetrakoopa.gradle.plugin.shell.test.task.RunTestsResultsTask
 import net.tetrakoopa.gradle.plugin.shell.test.task.ShellTestTask
 import net.tetrakoopa.gradle.plugin.shell.test.task.ShellCheckTask
@@ -25,8 +25,8 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 	public static final String ALL_TESTS_SHOW_TASK_NAME = "shell-test-show"
 	public static final String ALL_TESTS_VALIDATE_TASK_NAME = "shell-test"
 
-	public static final String ALL_CHECKS_RESULT_TASK_NAME = "shell-checkchecks"
-	public static final String ALL_CHECKS_TASK_NAME = "shell-check"
+	public static final String ALL_CHECKS_SHOW_TASK_NAME = "shell-check-show"
+	public static final String ALL_CHECKS_VALIDATE_TASK_NAME = "shell-check"
 
 	public static final String ENVVAR_TEST_RESULTS_DIRECTORY = "MDU_SHELLTEST_TEST_RESULTS_DIRECTORY"
 	public static final String ENVVAR_TEST_NAME = "MDU_SHELLTEST_TEST_NAME"
@@ -45,6 +45,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 		}
 		return minLength
 	}
+
 	private void prepareEnvironment(Project project) {
 		project.shell_test.environmentVariables['MDU_SHELLTEST_TESTUNIT_SHUNIT2_EXEC'] = project.shell_test.testSuite.executable
 		project.shell_test.environmentVariables['MDU_SHELLTEST_PROJECT_DIRECTORY'] = project.projectDir
@@ -65,40 +66,15 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 		File toolResourcesDir = BundledResourcesPlugin.unpackBundledResources(project, ID, "tool")
 
 		def extension = project.extensions.create(SHELL_TEST_EXTENSION_NAME, ShellTestPluginExtension, project)
-		extension.with {
-			returnCode {
-				executionError = 23
-				assertionFailure = 24
-			}
-			resultsDir = new File(project.buildDir, "test-results")
-
-			testSuite {
-				shunit2Home = new File(toolResourcesDir, "shunit2-2.0.3")
-				executable = new File(project.shell_test.testSuite.shunit2Home, "shunit2")
-				runnerInclude = new File(toolResourcesDir, "test_runner.sh")
-			}
-			naming {
-				removeCommonPrefix = true
-				prefix = "test_"
-				removeSuffix = false
-			}
-			check {
-				enabled = canCheckScript()
-				naming {
-					prefix = "check_"
-					removeSuffix = false
-				}
-				resultsDir = new File(project.buildDir, "check-results")
-			}
-		}
+		DefaultConfiguration.setDefaultPreConfig(extension, project, toolResourcesDir)
 
 		project.ext.ShellTestTask = ShellTestTask
 		project.ext.AllShellTestsTask = RunTestsResultsTask
 
 		project.afterEvaluate {
 			prepareEnvironment(project)
+			DefaultConfiguration.setDefaultConfig(extension, project)
 			addTasks(project)
-			project
 		}
 
 
@@ -121,16 +97,15 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 			trimmedScriptsStart = getBiggestPrefix(projectStart, project.shell_test.scripts)
 		}
 
-		if (project.shell_test.check.enabled) {
+		if (project.shell_test.check != null) {
 
-			if (!canCheckScript()) throw new GradleException("Cannot check script : no available command")
+			if (!existsInPath(ExternalTool.CHECK_SCRIPT_COMMAND)) {
+				project.logger.error("Could not find command '${ExternalTool.CHECK_SCRIPT_COMMAND}' on the PATH")
+				throw new GradleException("Cannot check scripts : command '${ExternalTool.CHECK_SCRIPT_COMMAND}' not available")
+			}
 
 			setupCheckTasks(project, trimmedScriptsStart)
 		}
-	}
-
-	private boolean canCheckScript() {
-		return existsInPath("shellcheck")
 	}
 
 	private void setupTestTasks(Project project, String trimmedTestScriptsStart) {
@@ -173,11 +148,12 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 		project.shell_test.testScripts.each() { file ->
 
 			String projectTrimmedName = file.absolutePath.startsWith(trimmedTestScriptsStart) ? file.absolutePath.substring(trimmedTestScriptsStart.size()) : file.absolutePath
-			if (project.shell_test.naming.removeSuffix)
-				projectTrimmedName = projectTrimmedName - FILENAME_SUFFIX_REGEX
-			String simple_testname = projectTrimmedName
+			String projectTrimmedNameWithoutSuffix = project.shell_test.naming.removeSuffix
+				? projectTrimmedName - FILENAME_SUFFIX_REGEX
+				: projectTrimmedName
+			String simple_testname = projectTrimmedNameWithoutSuffix
 
-			String testname = projectTrimmedName.replaceAll('/','.')
+			String testname = projectTrimmedNameWithoutSuffix.replaceAll('/','.')
 			if (project.shell_test.naming.prefix)
 				testname = project.shell_test.naming.prefix + testname
 
@@ -188,7 +164,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 			}
 			project.configure(testTask) {
 				group = TEST_TASK_GROUP
-				description = "Execute test file '${file.name}'"
+				description = "Execute test file '${projectTrimmedName}'"
 			}
 			runTestsTask.dependsOn testTask
 			//testTask.finalizedBy testShowTaskOld
@@ -202,12 +178,16 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 
 	private void setupCheckTasks(Project project, String trimmedScriptsStart) {
 
-		def resultsCheckCheckTask = project.task(ALL_CHECKS_RESULT_TASK_NAME, type:CheckChecksResultsTask) { }
-		def allChecksTask = project.task(ALL_CHECKS_TASK_NAME) { }
-		project.configure(allChecksTask) {
-			group = TEST_TASK_GROUP
+		def runChecksTask = project.task(ALL_CHECKS_SHOW_TASK_NAME, type:RunChecksResultsTask) { }
+		project.configure(runChecksTask) {
 			description = "Execute all checks"
 		}
+
+		def validateChecksTask = project.task(ALL_CHECKS_VALIDATE_TASK_NAME) { }
+		project.configure(validateChecksTask) {
+			description = "Validate all checks"
+		}
+		validateChecksTask.dependsOn (runChecksTask)
 
 		if (project.shell_test.scripts == null || project.shell_test.scripts.size()==0) {
 			project.getLogger().warn(LOGGING_PREFIX+"No script found for checking")
@@ -217,11 +197,12 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 		project.shell_test.scripts.each() { file ->
 
 			String projectTrimmedName = file.absolutePath.startsWith(trimmedScriptsStart) ? file.absolutePath.substring(trimmedScriptsStart.size()) : file.absolutePath
-			if (project.shell_test.check.naming.removeSuffix)
-				projectTrimmedName = projectTrimmedName - FILENAME_SUFFIX_REGEX
-			String simple_testname = projectTrimmedName
+			String projectTrimmedNameWithoutSuffix = project.shell_test.naming.removeSuffix
+					? projectTrimmedName - FILENAME_SUFFIX_REGEX
+					: projectTrimmedName
+			String simple_testname = projectTrimmedNameWithoutSuffix
 
-			String checkname = projectTrimmedName.replaceAll('/','.')
+			String checkname = projectTrimmedNameWithoutSuffix.replaceAll('/','.')
 			if (project.shell_test.check.naming.prefix)
 				checkname = project.shell_test.check.naming.prefix + checkname
 
@@ -231,12 +212,11 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 				if (project.shell_test.workingDir != null) workingDir = project.shell_test.workingDir
 			}
 			project.configure(checkTask) {
-				group = TEST_TASK_GROUP
-				description = "Check script '${file.name}'"
+				description = "Check script '${projectTrimmedName}'"
 			}
 
-			allChecksTask.dependsOn checkTask
-			checkTask.finalizedBy resultsCheckCheckTask
+			runChecksTask.dependsOn checkTask
+			//checkTask.finalizedBy resultsCheckCheckTask
 		}
 
 	}
