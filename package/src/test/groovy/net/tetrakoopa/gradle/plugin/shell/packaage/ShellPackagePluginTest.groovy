@@ -8,15 +8,16 @@ import spock.lang.Shared
 import spock.lang.Specification
 
 import java.nio.file.Files
+import java.nio.file.Path
 
 class ShellPackagePluginTest extends Specification {
 
 	@Shared
 	Project project
 	@Shared
-	def projectDir
+	File projectDir
 	@Shared
-	def buildDir
+	Path buildDir
 
 	@Shared
 	String testedProjectBuildDir
@@ -25,13 +26,10 @@ class ShellPackagePluginTest extends Specification {
 
 	def setupSpec() {
 
-
-		// This an awful way the find project build directory
-		testedProjectBuildDir = ShellPackagePluginTest.class.protectionDomain.codeSource.location.path+'../../../build';
 		testedProjectBuildDir = System.getenv('net.tetrakoopa.shell-package.project.buildDir')
 		if (testedProjectBuildDir == null) throw new NullPointerException()
 
-		bundledZipAbsolutePath = testedProjectBuildDir+'/net.tetrakoopa.bundled-resources/net.tetrakoopa.shell-package.tool.zip'
+		bundledZipAbsolutePath = "${testedProjectBuildDir}/net.tetrakoopa.bundled-resources/${ShellPackagePlugin.ID}.tool.zip"
 	}
 	def cleanupSpec() {
 
@@ -40,6 +38,8 @@ class ShellPackagePluginTest extends Specification {
 		URL resource = getClass().getResource('/gradle/packaged-project/build.gradle')
 		projectDir = new File(resource.toURI()).getParentFile()
 		project = ProjectBuilder.builder().withName('project').withProjectDir(projectDir).build()
+		project.group = 'some.group'
+		project.version = '1.2.3'
 		buildDir = Files.createTempDirectory("Project.buildDir")
 		project.setBuildDir(buildDir)
 		prepareBundledResources(project)
@@ -109,6 +109,14 @@ class ShellPackagePluginTest extends Specification {
 		packageZip.data in Data
 		packageZip.outputFile == new File("${project.buildDir}/packagename-${project.version}.deb").canonicalFile
 	}*/
+
+//	def "zip task create a zip bundle"() {
+//		when: "task package is executed"
+//			project.evaluate()
+//			project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP).execute()
+//		then: "there is zip archive in the build directory"
+//			new File(project.buildDir, 'azeaz.zip' ).exists()
+//	}
 
 	def "packageZip is dependent on documentation Task"() {
 		when: "project example project is evaluated"
