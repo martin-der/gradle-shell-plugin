@@ -132,7 +132,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 		if (shell_package.distributionName == null) shell_package.distributionName = "${project.name}-${project.version}"
 		if (shell_package.version == null) shell_package.version = project.version
 		if (shell_package.output.distributionDirectory == null) shell_package.output.distributionDirectory = project.buildDir
-		if (shell_package.output.distributionDirectory == null) shell_package.output.distributionDirectory = new File(project.buildDir.absolutePath + '/doc')
+		if (shell_package.output.documentationDirectory == null) shell_package.output.documentationDirectory = new File(project.buildDir.absolutePath + '/doc')
 	}
 
 	void apply(Project project) {
@@ -203,7 +203,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 				final Documentation documentation = shell_package.documentation
 
 				documentation.lots.forEach { lot ->
-					File outputDir = lot.outputDir ?: shell_package.output.distributionDirectory
+					File outputDir = lot.outputDir ?: shell_package.output.documentationDirectory
 
 					if (!outputDir.exists()) outputDir.mkdirs()
 
@@ -323,6 +323,8 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 					commandLine 'shar', '--quiet', '--quiet-unshar', '.'
 					standardOutput = new FileOutputStream(sharFile)
 				}
+
+				if (!shell_package.output.distributionDirectory.exists()) shell_package.output.distributionDirectory.mkdirs()
 
 				def autoInstallerFile = project.file("${shell_package.output.distributionDirectory}/${shell_package.distributionName}.run")
 				if (autoInstallerFile.exists()) autoInstallerFile.delete()

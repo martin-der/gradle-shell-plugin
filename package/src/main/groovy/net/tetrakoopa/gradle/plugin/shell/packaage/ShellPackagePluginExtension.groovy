@@ -21,8 +21,25 @@ class ShellPackagePluginExtension {
 		this.project = project
 	}
 	class Output {
+		private final Project project
+
 		File distributionDirectory
 		File documentationDirectory
+
+		Output(Project project) { this.project = project}
+
+		def distributionDirectory(String file) {
+			this.distributionDirectory = file.startsWith('/') ? new File(file) : new File("${project.buildDir.absolutePath}/${file}")
+		}
+		def distributionDirectory(File file) {
+			this.distributionDirectory = file
+		}
+		def documentationDirectory(String file) {
+			this.documentationDirectory = file.startsWith('/') ? new File(file) : new File("${project.buildDir.absolutePath}/${file}")
+		}
+		def documentationDirectory(File file) {
+			this.documentationDirectory = file
+		}
 	}
 	class Banner {
 		final PathOrContentLocation content = new DefaultPathOrContentLocation()
@@ -78,6 +95,7 @@ class ShellPackagePluginExtension {
 		}
 
 		boolean makeExecutable
+		def makeExecutable(boolean executable) { this.executable = executable }
 
 		def userScript(Closure closure) { ConfigureUtil.configure(closure, userScript) }
 		def readme(Closure closure) { readme.__configure(closure, "installer readme")}
@@ -89,7 +107,7 @@ class ShellPackagePluginExtension {
 	String version
 	Information information
 	Banner banner = new Banner()
-	final Output output = new Output()
+	final Output output = new Output(project)
 	Documentation documentation = new Documentation()
 	Installer installer = new Installer()
 
