@@ -2,7 +2,7 @@ package net.tetrakoopa.gradle.plugin.shell.test
 
 import net.tetrakoopa.gradle.plugin.shell.common.AbstractShellProjectPlugin
 import net.tetrakoopa.gradle.plugin.shell.test.task.CheckChecksResultsTask
-import net.tetrakoopa.gradle.plugin.shell.test.task.CheckTestsResultsTask
+import net.tetrakoopa.gradle.plugin.shell.test.task.RunTestsResultsTask
 import net.tetrakoopa.gradle.plugin.shell.test.task.ShellTestTask
 import net.tetrakoopa.gradle.plugin.shell.test.task.ShellCheckTask
 import net.tetrakoopa.poignee.bundledresources.BundledResourcesPlugin
@@ -21,8 +21,9 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 
 	public static final String LOGGING_PREFIX = "Shell-Test : "
 
-	public static final String ALL_TESTS_RESULT_TASK_NAME = "shell-checktests"
-	public static final String ALL_TESTS_TASK_NAME = "shell-test"
+	public static final String ALL_TESTS_SHOW_TASK_NAME_OLD = "shell-checktests"
+	public static final String ALL_TESTS_SHOW_TASK_NAME = "shell-test-show"
+	public static final String ALL_TESTS_VALIDATE_TASK_NAME = "shell-test"
 
 	public static final String ALL_CHECKS_RESULT_TASK_NAME = "shell-checkchecks"
 	public static final String ALL_CHECKS_TASK_NAME = "shell-check"
@@ -31,6 +32,9 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 	public static final String ENVVAR_TEST_NAME = "MDU_SHELLTEST_TEST_NAME"
 
 	private static final def FILENAME_SUFFIX_REGEX = ~/(?i)\.\w+$/
+
+	private static final String TEST_TASK_GROUP = "test"
+
 
 	private int stringsGreatestCommonPrefixLength(String a, String b) {
 		int minLength = Math.min(a.length(), b.length())
@@ -67,7 +71,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 				assertionFailure = 24
 			}
 			resultsDir = new File(project.buildDir, "test-results")
-			throwErrorOnBadResult = true
+
 			testSuite {
 				shunit2Home = new File(toolResourcesDir, "shunit2-2.0.3")
 				executable = new File(project.shell_test.testSuite.shunit2Home, "shunit2")
@@ -85,12 +89,11 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 					removeSuffix = false
 				}
 				resultsDir = new File(project.buildDir, "check-results")
-				throwErrorOnBadResult = false
 			}
 		}
 
 		project.ext.ShellTestTask = ShellTestTask
-		project.ext.AllShellTestsTask = CheckTestsResultsTask
+		project.ext.AllShellTestsTask = RunTestsResultsTask
 
 		project.afterEvaluate {
 			prepareEnvironment(project)
@@ -132,8 +135,35 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 
 	private void setupTestTasks(Project project, String trimmedTestScriptsStart) {
 
-		def resultsCheckTask = project.task(ALL_TESTS_RESULT_TASK_NAME, type:CheckTestsResultsTask) { }
-		def allTestsTask = project.task(ALL_TESTS_TASK_NAME) { }
+		def runTestsTask = project.task(ALL_TESTS_SHOW_TASK_NAME, type:RunTestsResultsTask) { }
+		project.configure(runTestsTask) {
+			group = TEST_TASK_GROUP
+			description = 'Execute all tests'
+		}
+
+		def runTestsTaskOld = project.task(ALL_TESTS_SHOW_TASK_NAME_OLD) {
+			project.getLogger().warn(LOGGING_PREFIX+"Task '${ALL_TESTS_SHOW_TASK_NAME_OLD}' is deprecated, use '${ALL_TESTS_SHOW_TASK_NAME}' instead")
+		}
+		project.configure(runTestsTaskOld) {
+			group = TEST_TASK_GROUP
+			description = "Execute all tests (deprecated: use '${ALL_TESTS_SHOW_TASK_NAME}' instead)"
+		}
+		runTestsTaskOld.dependsOn (runTestsTask)
+
+		def validateTestsTask = project.task(ALL_TESTS_VALIDATE_TASK_NAME) {
+			doLast {
+				def failedTestsCount = project.shell_test.result.failed.size()
+				def testsCount = project.shell_test.result.executedCount
+				if (failedTestsCount>0) {
+					throw new RuntimeException("${failedTestsCount}/${testsCount} test(s) failed")
+				}
+			}
+		}
+		validateTestsTask.dependsOn (runTestsTask)
+		project.configure(validateTestsTask) {
+			group = TEST_TASK_GROUP
+			description = 'Validate all tests'
+		}
 
 		if (project.shell_test.testScripts == null || project.shell_test.testScripts.size()==0) {
 			project.getLogger().warn(LOGGING_PREFIX+"No test script found")
@@ -156,11 +186,17 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 				script = file
 				if (project.shell_test.workingDir != null) workingDir = project.shell_test.workingDir
 			}
-			allTestsTask.dependsOn testTask
-			testTask.finalizedBy resultsCheckTask
+			project.configure(testTask) {
+				group = TEST_TASK_GROUP
+				description = "Execute test file '${file.name}'"
+			}
+			runTestsTask.dependsOn testTask
+			//testTask.finalizedBy testShowTaskOld
 		}
 
-		project.tasks[GRADLE_LIFECYCLE_TEST_TASK].dependsOn resultsCheckTask
+		def testTask = project.tasks.findByName('test')
+		if (testTask)
+			testTask.dependsOn runTestsTaskOld
 
 	}
 
@@ -168,6 +204,10 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 
 		def resultsCheckCheckTask = project.task(ALL_CHECKS_RESULT_TASK_NAME, type:CheckChecksResultsTask) { }
 		def allChecksTask = project.task(ALL_CHECKS_TASK_NAME) { }
+		project.configure(allChecksTask) {
+			group = TEST_TASK_GROUP
+			description = "Execute all checks"
+		}
 
 		if (project.shell_test.scripts == null || project.shell_test.scripts.size()==0) {
 			project.getLogger().warn(LOGGING_PREFIX+"No script found for checking")
@@ -189,6 +229,10 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 				testName = simple_testname
 				script = file
 				if (project.shell_test.workingDir != null) workingDir = project.shell_test.workingDir
+			}
+			project.configure(checkTask) {
+				group = TEST_TASK_GROUP
+				description = "Check script '${file.name}'"
 			}
 
 			allChecksTask.dependsOn checkTask

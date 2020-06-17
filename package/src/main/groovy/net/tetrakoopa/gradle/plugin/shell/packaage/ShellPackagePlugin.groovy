@@ -20,6 +20,7 @@ import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.file.RelativePath
+import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.tasks.bundling.Compression
 import org.gradle.api.tasks.bundling.Tar
 import org.gradle.api.tasks.bundling.Zip
@@ -40,6 +41,8 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 	public static final String TASK_NAME_INSTALLER = "installer"
 	public static final String TASK_NAME_EXECUTABLE_INSTALLER = "executableInstaller"
 	public static final String TASK_PREPARE = "shell-package_common"
+
+	private static final String DOCUMENTATION_TASK_GROUP = "documentation"
 
 	interface BannerLineReplacer {
 		String replace(Map<String, String> values, String line)
@@ -251,6 +254,10 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 
 			}
 		}
+		project.configure(documentationTask) {
+			group = DOCUMENTATION_TASK_GROUP
+			description = 'Build documentation'
+		}
 
 		def packageZipTask = project.task(TASK_NAME_PACKAGE_ZIP, type: Zip, dependsOn: [prepareSourcesTask, documentationTask]) {
 
@@ -258,6 +265,10 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 			from internal.intermediateSourcesDirectory
 
 			destinationDirectory = shell_package.output.distributionDirectory
+		}
+		project.configure(packageZipTask) {
+			group = BasePlugin.BUILD_GROUP
+			description = 'Build zip package'
 		}
 
 		def packageTGZTask = project.task(TASK_NAME_PACKAGE_TGZ, type: Tar, dependsOn: [prepareSourcesTask, documentationTask]) {
@@ -269,6 +280,10 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 
 			compression = Compression.GZIP
 			archiveExtension = 'tar.gz'
+		}
+		project.configure(packageTGZTask) {
+			group = BasePlugin.BUILD_GROUP
+			description = 'Build tar gzipped package'
 		}
 
 		final String installerWorkingDir = "${internal.workingDir}/installer"
@@ -354,10 +369,24 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 			}
 
 		}
+		project.configure(installerTask) {
+			group = BasePlugin.BUILD_GROUP
+			description = 'Build self extracting archive'
+		}
 
 		def packageTask = project.task(TASK_NAME_PACKAGES, dependsOn: [packageTGZTask, packageZipTask, installerTask])
+		project.configure(packageTask) {
+			group = BasePlugin.BUILD_GROUP
+			description = 'Build packages and installers'
+		}
 
-		project.task('shell-build', dependsOn: [documentationTask, packageTask, installerTask]) {}
+		def buildTask = project.task('shell-build', dependsOn: [documentationTask, packageTask, installerTask]) {}
+		project.configure(buildTask) {
+			group = BasePlugin.BUILD_GROUP
+			description = 'Build packages, installers and documentation'
+		}
+
+
 	}
 
 	private String getSharVersion(project) {
