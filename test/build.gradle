@@ -31,3 +31,7 @@ bundled {
 		//into 'tool'
 	}
 }
+
+tasks.withType(Test) {
+	it.environment 'net.tetrakoopa.bundled-resources.project.buildDir', project.buildDir.absolutePath
+}

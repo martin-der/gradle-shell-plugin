@@ -75,6 +75,17 @@ shell_package {
 }
 ~~~
 
+Packages are created by default in the project's build directory. This can be changed with the `output` configuration.
+
+~~~groovy
+shell_package {
+	...
+	output {
+		distributionDirectory 'dist'
+	}
+}
+~~~
+
 Optionally generate markdown documentation file from comments in script
 
 TODO syntax and examples [here](README-comment-to-markdown.md) 
