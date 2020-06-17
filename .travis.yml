@@ -1,5 +1,13 @@
 language: groovy
 
+notifications:
+    webhooks:
+        urls:
+            - "https://scalar.vector.im/api/neb/services/hooks/dHJhdmlzLWNpLyU0MG1hcnRpbi1kZXIlM0FtYXRyaXgub3JnLyUyMXdUSkd6b2NHeGFOVEpBY1h3dSUzQW1hdHJpeC5vcmc"
+        on_success: change  # always|never|change
+        on_failure: always
+        on_start: never
+
 jdk:
   - openjdk9
 

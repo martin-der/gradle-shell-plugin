@@ -8,15 +8,16 @@ import spock.lang.Shared
 import spock.lang.Specification
 
 import java.nio.file.Files
+import java.nio.file.Path
 
 class ShellPackagePluginTest extends Specification {
 
 	@Shared
 	Project project
 	@Shared
-	def projectDir
+	File projectDir
 	@Shared
-	def buildDir
+	Path buildDir
 
 	@Shared
 	String testedProjectBuildDir
@@ -25,13 +26,10 @@ class ShellPackagePluginTest extends Specification {
 
 	def setupSpec() {
 
-
-		// This an awful way the find project build directory
-		testedProjectBuildDir = ShellPackagePluginTest.class.protectionDomain.codeSource.location.path+'../../../build';
-		testedProjectBuildDir = System.getenv('net.tetrakoopa.shell-package.project.buildDir')
-		if (testedProjectBuildDir == null) throw new NullPointerException()
-
-		bundledZipAbsolutePath = testedProjectBuildDir+'/net.tetrakoopa.bundled-resources/net.tetrakoopa.shell-package.tool.zip'
+//		testedProjectBuildDir = System.getenv('net.tetrakoopa.bundled-resources.project.buildDir')
+//		if (testedProjectBuildDir == null) throw new IllegalStateException()
+//
+//		bundledZipAbsolutePath = "${testedProjectBuildDir}/net.tetrakoopa.bundled-resources/${ShellPackagePlugin.ID}.tool.zip"
 	}
 	def cleanupSpec() {
 
@@ -40,15 +38,29 @@ class ShellPackagePluginTest extends Specification {
 		URL resource = getClass().getResource('/gradle/packaged-project/build.gradle')
 		projectDir = new File(resource.toURI()).getParentFile()
 		project = ProjectBuilder.builder().withName('project').withProjectDir(projectDir).build()
+		project.group = 'some.group'
+		project.version = '1.2.3'
 		buildDir = Files.createTempDirectory("Project.buildDir")
 		project.setBuildDir(buildDir)
-		prepareBundledResources(project)
+		fakeBundledResources(project, "tool")
 	}
 	def cleanup() {
 	}
 
-	private void prepareBundledResources(Project project) {
-		BundledResourcesPlugin.unpackBundledResourcesUsingThisZip(project, ShellPackagePlugin.ID, 'tool', new File(bundledZipAbsolutePath))
+	private void prepareAllBundledResources(Project project) {
+		prepareBundledResources(project, "tool")
+	}
+	private void prepareBundledResources(Project project, String name) {
+		BundledResourcesPlugin.unpackBundledResourcesUsingThisZip(project, ShellPackagePlugin.ID, name, new File(bundledZipAbsolutePath))
+	}
+	private void fakeAllBundledResources(Project project) {
+		fakeBundledResources(project, "tool")
+	}
+	private void fakeBundledResources(Project project, String name) {
+		// Assume this project is the top project
+		File dir = project.file("${project.buildDir}/${ShellPackagePlugin.ID}/${name}")
+		dir.mkdirs()
+		new File(dir, ".unpack-ok").write("ok")
 	}
 
 	def "no ShellPackagePluginExtension is registered by default"() {
@@ -110,10 +122,18 @@ class ShellPackagePluginTest extends Specification {
 		packageZip.outputFile == new File("${project.buildDir}/packagename-${project.version}.deb").canonicalFile
 	}*/
 
+//	def "zip task create a zip bundle"() {
+//		when: "task package is executed"
+//			project.evaluate()
+//			project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP).execute()
+//		then: "there is zip archive in the build directory"
+//			new File(project.buildDir, 'azeaz.zip' ).exists()
+//	}
+
 	def "packageZip is dependent on documentation Task"() {
 		when: "project example project is evaluated"
 			Project project = ProjectBuilder.builder().withProjectDir(projectDir).build()
-			prepareBundledResources(project)
+			fakeAllBundledResources(project)
 			project.evaluate()
 		then:
 			Task packageZipTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGE_ZIP)
@@ -124,7 +144,7 @@ class ShellPackagePluginTest extends Specification {
 	def "task 'packages' depends on packageZip and packageTgz Tasks"() {
 		when: "project example project is evaluated"
 			Project project = ProjectBuilder.builder().withProjectDir(projectDir).build()
-			prepareBundledResources(project)
+			fakeAllBundledResources(project)
 			project.evaluate()
 		then:
 			Task packagesTask = project.tasks.findByName(ShellPackagePlugin.TASK_NAME_PACKAGES)
