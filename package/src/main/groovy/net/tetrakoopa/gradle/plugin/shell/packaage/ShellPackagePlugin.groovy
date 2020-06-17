@@ -15,6 +15,7 @@ import net.tetrakoopa.gradle.plugin.shell.packaage.usual.NameMapper
 import net.tetrakoopa.gradle.plugin.shell.packaage.util.MultilinePropertyWriter
 import net.tetrakoopa.gradle.plugin.shell.packaage.util.ResourceHelper
 import net.tetrakoopa.poignee.bundledresources.BundledResourcesPlugin
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
@@ -41,6 +42,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 	public static final String TASK_NAME_INSTALLER = "installer"
 	public static final String TASK_NAME_EXECUTABLE_INSTALLER = "executableInstaller"
 	public static final String TASK_PREPARE = "shell-package_common"
+	public static final String TASK_NAME_BUILD_ALL = 'shell-build'
 
 	private static final String DOCUMENTATION_TASK_GROUP = "documentation"
 
@@ -295,7 +297,10 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 
 				internal.installerFilesRootDir = context.project.file("${installerWorkingDir}/files")
 
-				if (!existsInPath("shar")) throw new IllegalStateException("Task '${TASK_NAME_INSTALLER}' requires command 'shar'")
+				if (!existsInPath(ExternalTool.CREATE_SELF_EXTRACTING_ARCHIVE_COMMAND)) {
+					project.logger.error("Could not find command '${ExternalTool.CREATE_SELF_EXTRACTING_ARCHIVE_COMMAND}' on the PATH")
+					throw new GradleException("Cannot create self-extracting archive : command '${ExternalTool.CREATE_SELF_EXTRACTING_ARCHIVE_COMMAND}' not available")
+				}
 
 				project.copy {
 					from internal.intermediateSources
@@ -380,7 +385,7 @@ class ShellPackagePlugin extends AbstractShellProjectPlugin implements Plugin<Pr
 			description = 'Build packages and installers'
 		}
 
-		def buildTask = project.task('shell-build', dependsOn: [documentationTask, packageTask, installerTask]) {}
+		def buildTask = project.task(TASK_NAME_BUILD_ALL, dependsOn: [documentationTask, packageTask, installerTask]) {}
 		project.configure(buildTask) {
 			group = BasePlugin.BUILD_GROUP
 			description = 'Build packages, installers and documentation'

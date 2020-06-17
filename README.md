@@ -147,5 +147,17 @@ shell_test {
 }
 ~~~
 
+When the [shellcheck](https://www.shellcheck.net/) command if accessible in the PATH, it is possible to generate reports.
+Script files must be set with `scriptFrom`. 
+~~~groovy
+shell_test {
+    ...
+	scriptFrom fileTree("src").include('**/*.sh')
+	check {
+        resultsDir 'check-result'
+	}
+
+}
+~~~
 
 

@@ -37,14 +37,16 @@ class ShellTestPluginExtension {
 	}
 
 	class Check {
+		private final Project project
+		Check(Project project) { this.project = project }
 		class Naming {
 			String prefix
 			boolean removeSuffix
 		}
-		boolean enabled
 		final Naming naming = new Naming()
 		File resultsDir
-		boolean thowErrorOnBadResult
+		def resultsDir ( String file) { this.resultsDir = file.startsWith('/') ? file : new File(project.buildDir, file) }
+		def resultsDir ( File file) { this.resultsDir = file }
 		def naming(Closure closure) { ConfigureUtil.configure(closure, naming) }
 	}
 
@@ -59,9 +61,18 @@ class ShellTestPluginExtension {
 	final TestSuite testSuite = new TestSuite()
 	final ReturnCode returnCode = new ReturnCode()
 	final Naming naming = new Naming()
-	final Check check = new Check()
+	Check check
 
 	ConfigurableFileCollection testScripts
+
+	ConfigurableFileCollection from(Object... paths) {
+		if (testScripts == null)
+			testScripts = project.files(paths)
+		else
+			testScripts.from(paths)
+		return testScripts
+	}
+
 	File workingDir
 	final Result result = new Result()
 	File resultsDir
@@ -76,14 +87,6 @@ class ShellTestPluginExtension {
 		return scripts
 	}
 
-	ConfigurableFileCollection from(Object... paths) {
-		if (testScripts == null)
-			testScripts = project.files(paths)
-		else
-			testScripts.from(paths)
-		return testScripts
-	}
-
 	ShellTestPluginExtension workingDir(Object dir) {
 		workingDir = project.file(dir)
 		return this
@@ -92,7 +95,10 @@ class ShellTestPluginExtension {
 	def testSuite(Closure closure) { ConfigureUtil.configure(closure, testSuite) }
 	def returnCode(Closure closure) { ConfigureUtil.configure(closure, returnCode) }
 	def naming(Closure closure) { ConfigureUtil.configure(closure, naming) }
-	def check(Closure closure) { ConfigureUtil.configure(closure, check) }
+	def check(Closure closure) {
+		check = new Check(project)
+		ConfigureUtil.configure(closure, check)
+	}
 	def result(Closure closure) { ConfigureUtil.configure(closure, result) }
 }
 
