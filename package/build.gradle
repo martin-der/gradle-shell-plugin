@@ -38,7 +38,7 @@ jar {
 }
 
 tasks.withType(Test) {
-	it.environment 'net.tetrakoopa.shell-package.project.buildDir', project.buildDir.absolutePath
+	it.environment 'net.tetrakoopa.bundled-resources.project.buildDir', project.buildDir.absolutePath
 }
 
 bundled {
