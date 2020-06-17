@@ -65,13 +65,13 @@ Optionally show a README or execute a script after a successful installation
 shell_package {
 	...
 	installer {
-        readme.location = 'README.md'
+		readme.location = 'README.md'
 
-        userScript {
-            script.location = "bin/format-C-colon"
-            question = "Do you want execute post-install script to free some space"
-        }
-    }
+		userScript {
+			script.location = "bin/format-C-colon"
+			question = "Do you want execute post-install script to free some space"
+		}
+	}
 }
 ~~~
 
@@ -129,7 +129,7 @@ shell_test {
 	workingDir = project.file("test")
 
 	naming {
-        // will remove the '.sh' part from the generated test task name
+		// will remove the '.sh' part from the generated test task name
 		removeSuffix = true
 	}
 
