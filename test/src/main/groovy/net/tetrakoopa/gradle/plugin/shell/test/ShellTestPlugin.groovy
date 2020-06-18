@@ -30,6 +30,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 
 	public static final String ENVVAR_TEST_RESULTS_DIRECTORY = "MDU_SHELLTEST_TEST_RESULTS_DIRECTORY"
 	public static final String ENVVAR_TEST_NAME = "MDU_SHELLTEST_TEST_NAME"
+	public static final String ENVVAR_TEST_RELATIVE_PATH = "MDU_SHELLTEST_TEST_RELATIVE_PATH"
 
 	private static final def FILENAME_SUFFIX_REGEX = ~/(?i)\.\w+$/
 
@@ -159,6 +160,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 
 			def testTask = project.task(testname, type: ShellTestTask) {
 				testName = simple_testname
+				testRelativePath = projectTrimmedName
 				script = file
 				if (project.shell_test.workingDir != null) workingDir = project.shell_test.workingDir
 			}

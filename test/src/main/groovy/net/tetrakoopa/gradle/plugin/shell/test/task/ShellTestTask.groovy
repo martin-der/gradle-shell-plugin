@@ -16,6 +16,8 @@ class ShellTestTask extends DefaultTask {
 
 	String testName
 
+	String testRelativePath
+
 	String workingDir = "."
 
 	final OutputRedirect outputRedirect = new OutputRedirect()
@@ -41,6 +43,7 @@ class ShellTestTask extends DefaultTask {
 				: project.shell_test.resultsDir.absolutePath
 		)
 		environmentVariables.put(ShellTestPlugin.ENVVAR_TEST_NAME, testName == null ? "" : testName)
+		environmentVariables.put(ShellTestPlugin.ENVVAR_TEST_RELATIVE_PATH, testRelativePath)
 
 
 		def execResult = project.exec() {

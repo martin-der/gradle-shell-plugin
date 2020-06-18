@@ -13,7 +13,7 @@ class DefaultConfiguration {
 			resultsDir = new File(project.buildDir, "test-results")
 
 			testSuite {
-				shunit2Home = new File(toolResourcesDir, "shunit2-2.0.3")
+				shunit2Home = new File(toolResourcesDir, "shunit2")
 				executable = new File(project.shell_test.testSuite.shunit2Home, "shunit2")
 				runnerInclude = new File(toolResourcesDir, "test_runner.sh")
 			}
