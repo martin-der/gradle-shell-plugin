@@ -47,7 +47,10 @@ shell_package {
 }
 ~~~
 
-then run `gradle shell-build`
+then run `gradle shell-build`.
+
+The `shar` command from [sharutil](https://www.gnu.org/software/sharutils/) must be available on the PATH.
+
 
 Show a banner when running the self-extracting archive
 ~~~groovy
@@ -86,7 +89,9 @@ shell_package {
 }
 ~~~
 
-Optionally generate markdown documentation file from comments in script
+Optionally generate markdown documentation file from comments in script.
+
+It requires [gawk](https://www.gnu.org/software/gawk/) to be available on the PATH.
 
 TODO syntax and examples [here](README-comment-to-markdown.md) 
  
@@ -116,7 +121,7 @@ Apply the plugin :
 apply plugin: 'net.tetrakoopa.shell-test'
 ~~~
 
-Test configuration is done by adding a collection of test script
+Test configuration is done by adding a collection of test script.
 
 ~~~groovy
 shell_test {
@@ -126,6 +131,8 @@ shell_test {
 ~~~
 
 You are now ready to create tests in the directory 'test'.
+
+It is powered by [shunit2](https://github.com/kward/shunit2).
 
 See [test plugin README](test/README.md) for explanations about writing test.
 
