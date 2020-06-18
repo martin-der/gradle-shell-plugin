@@ -77,3 +77,4 @@ The following environment variables can be used in **test** scripts :
 * `MDU_SHELLTEST_RESULTS_DIRECTORY` _path_ of the overall result directory
 * `MDU_SHELLTEST_TEST_RESULTS_DIRECTORY` _path_ of the result directory dedicated to this test
 * `MDU_SHELLTEST_TEST_NAME` this _string_ holds the name of the test
+* `MDU_SHELLTEST_TEST_RELATIVE_PATH` this _string_ holds the relative path of file inside the project source directory
