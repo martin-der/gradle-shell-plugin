@@ -118,13 +118,15 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 		}
 
 		def runTestsTaskOld = project.task(ALL_TESTS_SHOW_TASK_NAME_OLD) {
-			project.getLogger().warn(LOGGING_PREFIX+"Task '${ALL_TESTS_SHOW_TASK_NAME_OLD}' is deprecated, use '${ALL_TESTS_SHOW_TASK_NAME}' instead")
+			doLast {
+				project.getLogger().warn(LOGGING_PREFIX+"Task '${ALL_TESTS_SHOW_TASK_NAME_OLD}' is deprecated, use '${ALL_TESTS_SHOW_TASK_NAME}' instead")
+			}
 		}
+		runTestsTaskOld.dependsOn (runTestsTask)
 		project.configure(runTestsTaskOld) {
 			group = TEST_TASK_GROUP
 			description = "Execute all tests (deprecated: use '${ALL_TESTS_SHOW_TASK_NAME}' instead)"
 		}
-		runTestsTaskOld.dependsOn (runTestsTask)
 
 		def validateTestsTask = project.task(ALL_TESTS_VALIDATE_TASK_NAME) {
 			doLast {
