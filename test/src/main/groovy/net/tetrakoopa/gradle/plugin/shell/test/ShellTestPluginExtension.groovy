@@ -56,6 +56,15 @@ class ShellTestPluginExtension {
 		boolean removeSuffix
 	}
 
+	class Output {
+		File generatedDirectory
+		def generatedDirectory ( String file) { this.generatedDirectory = file.startsWith('/') ? file : new File(project.buildDir, file) }
+		def generatedDirectory ( File file) { this.generatedDirectory = file }
+		File logDirectory
+		def logDirectory ( String file) { this.logDirectory = file.startsWith('/') ? file : new File(project.buildDir, file) }
+		def logDirectory ( File file) { this.logDirectory = file }
+	}
+
 	def environmentVariables = [:]
 
 	final TestSuite testSuite = new TestSuite()
@@ -75,7 +84,10 @@ class ShellTestPluginExtension {
 
 	File workingDir
 	final Result result = new Result()
-	File resultsDir
+	File outputDirectory
+	def outputDirectory ( String file) { this.outputDirectory = file.startsWith('/') ? file : new File(project.buildDir, file) }
+	def outputDirectory ( File file) { this.outputDirectory = file }
+	final Output output = new Output()
 
 	ConfigurableFileCollection scripts
 
@@ -99,6 +111,7 @@ class ShellTestPluginExtension {
 		check = new Check(project)
 		ConfigureUtil.configure(closure, check)
 	}
+	def output(Closure closure) { ConfigureUtil.configure(closure, output) }
 	def result(Closure closure) { ConfigureUtil.configure(closure, result) }
 }
 

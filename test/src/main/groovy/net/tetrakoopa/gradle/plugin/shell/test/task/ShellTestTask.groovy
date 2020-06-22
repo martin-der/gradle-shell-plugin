@@ -36,23 +36,31 @@ class ShellTestTask extends DefaultTask {
 		if (workingDir==null) workingDir = project.file(".").absolutePath
 
 		def environmentVariables = [:]
-		environmentVariables << project.shell_test.environmentVariables
-		environmentVariables.put(ShellTestPlugin.ENVVAR_TEST_RESULTS_DIRECTORY,
+		environmentVariables << shell_test.environmentVariables
+		environmentVariables.put(ShellTestPlugin.ENVVAR_TEST_GENERATED_DIRECTORY,
 			testName != null
-				? project.shell_test.resultsDir.absolutePath+"/"+testName
-				: project.shell_test.resultsDir.absolutePath
+				? shell_test.output.generatedDirectory.absolutePath+"/"+testName
+				: shell_test.output.generatedDirectory.absolutePath
 		)
 		environmentVariables.put(ShellTestPlugin.ENVVAR_TEST_NAME, testName == null ? "" : testName)
 		environmentVariables.put(ShellTestPlugin.ENVVAR_TEST_RELATIVE_PATH, testRelativePath)
 
+		shell_test.output.logDirectory.mkdirs()
+
+		final File logDirectory = new File(testName != null
+			? shell_test.output.logDirectory.absolutePath+"/"+testName
+			: shell_test.output.logDirectory.absolutePath)
+		logDirectory.mkdirs()
+		final logOut = new FileOutputStream(new File(logDirectory, 'out.log'))
+		final logErr = new FileOutputStream(new File(logDirectory, 'err.log'))
 
 		def execResult = project.exec() {
 			it.workingDir = workingDir
 			it.environment environmentVariables
 			commandLine 'bash', "${script.path}"
 			ignoreExitValue true
-			standardOutput new LogOutputStream(logger, outputRedirect.standard)
-			errorOutput    new LogOutputStream(logger, outputRedirect.error)
+			standardOutput new TeeOutputStream(logOut, new LogOutputStream(logger, outputRedirect.standard))
+			errorOutput    new TeeOutputStream(logErr, new LogOutputStream(logger, outputRedirect.error))
 		}
 		logger.info("  Tested '${script.path}' : $execResult")
 		if(execResult.exitValue != 0) {
@@ -66,6 +74,44 @@ class ShellTestTask extends DefaultTask {
 	}
 }
 
+
+class TeeOutputStream extends OutputStream {
+	private OutputStream left;
+	private OutputStream right;
+
+	TeeOutputStream(OutputStream left, OutputStream right) {
+		this.left = left;
+		this.right = right;
+	}
+
+	void close() throws IOException {
+		try {
+			left.close();
+		} finally {
+			right.close();
+		}
+	}
+
+	void flush() throws IOException {
+		left.flush();
+		right.flush();
+	}
+
+	void write(byte[] b) throws IOException {
+		left.write(b);
+		right.write(b);
+	}
+
+	void write(byte[] b, int off, int len) throws IOException {
+		left.write(b, off, len);
+		right.write(b, off, len);
+	}
+
+	void write(int b) throws IOException {
+		left.write(b);
+		right.write(b);
+	}
+}
 
 class LogOutputStream extends ByteArrayOutputStream {
 

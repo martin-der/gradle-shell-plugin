@@ -10,7 +10,7 @@ class DefaultConfiguration {
 				executionError = 23
 				assertionFailure = 24
 			}
-			resultsDir = new File(project.buildDir, "test-results")
+			outputDirectory = new File(project.buildDir, "test-results")
 
 			testSuite {
 				shunit2Home = new File(toolResourcesDir, "shunit2")
@@ -27,7 +27,13 @@ class DefaultConfiguration {
 
 	static void setDefaultConfig(ShellTestPluginExtension extension, Project project) {
 		if (extension.check != null) {
-			ShellTestPluginExtension.Check check = extension.check
+
+			if (extension.output.logDirectory == null)
+				extension.output.logDirectory = new File(extension.outputDirectory, 'log')
+			if (extension.output.generatedDirectory == null)
+				extension.output.generatedDirectory = new File(extension.outputDirectory, 'generated')
+
+			final ShellTestPluginExtension.Check check = extension.check
 			if (check.naming.prefix == null) check.naming.prefix = "check_"
 			if (check.resultsDir == null) check.resultsDir = new File(project.buildDir, "check")
 		}

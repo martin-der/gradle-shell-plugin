@@ -63,7 +63,7 @@ After runner script as been sourced the following functions are available :
 #### mkTestResultsDir
 
 `mkTestResultsDir` will create the directory for the current script test, using it's name for the path.
-After a call to `mkTestResultsDir`, one can create files in the output directory located here `"$MDU_SHELLTEST_TEST_RESULTS_DIRECTORY"`
+After a call to `mkTestResultsDir`, one can create files in the output directory located here `$MDU_SHELLTEST_TEST_GENERATED_DIRECTORY`
 
 ### Environment variables
 
@@ -75,6 +75,6 @@ The following environment variables can be used in **test** scripts :
 * `MDU_SHELLTEST_TEST_ASSERTION_FAILURE_EXIT_CODE` tests can use this _integer value_ if they need to exit after an assertion failure
 * `MDU_SHELLTEST_TEST_EXECUTION_ERROR_EXIT_CODE` tests can return this _integer value_ when encountering any configuration problem 
 * `MDU_SHELLTEST_RESULTS_DIRECTORY` _path_ of the overall result directory
-* `MDU_SHELLTEST_TEST_RESULTS_DIRECTORY` _path_ of the result directory dedicated to this test
+* `MDU_SHELLTEST_TEST_GENERATED_DIRECTORY` _path_ of the result directory dedicated to this test
 * `MDU_SHELLTEST_TEST_NAME` this _string_ holds the name of the test
 * `MDU_SHELLTEST_TEST_RELATIVE_PATH` this _string_ holds the relative path of file inside the project source directory

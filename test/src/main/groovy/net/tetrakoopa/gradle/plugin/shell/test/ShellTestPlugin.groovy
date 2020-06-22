@@ -28,7 +28,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 	public static final String ALL_CHECKS_SHOW_TASK_NAME = "shell-check-show"
 	public static final String ALL_CHECKS_VALIDATE_TASK_NAME = "shell-check"
 
-	public static final String ENVVAR_TEST_RESULTS_DIRECTORY = "MDU_SHELLTEST_TEST_RESULTS_DIRECTORY"
+	public static final String ENVVAR_TEST_GENERATED_DIRECTORY = "MDU_SHELLTEST_TEST_GENERATED_DIRECTORY"
 	public static final String ENVVAR_TEST_NAME = "MDU_SHELLTEST_TEST_NAME"
 	public static final String ENVVAR_TEST_RELATIVE_PATH = "MDU_SHELLTEST_TEST_RELATIVE_PATH"
 
@@ -52,7 +52,7 @@ class ShellTestPlugin extends AbstractShellProjectPlugin implements Plugin<Proje
 		project.shell_test.environmentVariables['MDU_SHELLTEST_PROJECT_DIRECTORY'] = project.projectDir
 		project.shell_test.environmentVariables['MDU_SHELLTEST_TEST_EXECUTION_ERROR_EXIT_CODE'] = project.shell_test.returnCode.executionError
 		project.shell_test.environmentVariables['MDU_SHELLTEST_TEST_ASSERTION_FAILURE_EXIT_CODE'] = project.shell_test.returnCode.assertionFailure
-		project.shell_test.environmentVariables['MDU_SHELLTEST_RESULTS_DIRECTORY'] = project.shell_test.resultsDir
+		project.shell_test.environmentVariables['MDU_SHELLTEST_GENERATED_DIRECTORY'] = project.shell_test.output.generatedDirectory
 		project.shell_test.environmentVariables['MDU_SHELLTEST_TESTUNIT_RUNNER_INCLUDE'] = project.shell_test.testSuite.runnerInclude
 
 		//project.shell_test.environmentVariables['MDU_SHELLTEST_TESTUNIT_SOURCE_DIRECTORY'] = project.shell_test.testSuite.executable
