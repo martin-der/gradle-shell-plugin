@@ -1,0 +1,57 @@
+plugins {
+    // Apply the Java Gradle plugin development plugin to add support for developing Gradle plugins
+    id 'java-gradle-plugin'
+}
+
+repositories {
+    // Use Maven Central for resolving dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+    mavenCentral()
+}
+
+dependencies {
+    compileOnly("org.projectlombok:lombok:1.18.42")
+	annotationProcessor("org.projectlombok:lombok:1.18.42")
+
+    // Use JUnit test framework for unit tests
+    testImplementation 'junit:junit:4.13'
+}
+
+gradlePlugin {
+    // Define the plugin
+    plugins {
+        greeting {
+            id = 'shell'
+            implementationClass = 'net.tetrakoopa.gradle.plugin.shell.ShellPackagePlugin'
+        }
+    }
+}
+
+jar {
+    duplicatesStrategy = DuplicatesStrategy.FAIL
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDirs "tool"
+        }
+    }
+}
+
+
+// Add a source set and a task for a functional test suite
+def functionalTest = sourceSets.create('functionalTest')
+gradlePlugin.testSourceSets(functionalTest)
+
+configurations[functionalTest.implementationConfigurationName].extendsFrom(configurations.testImplementation)
+
+def functionalTestTask = tasks.register('functionalTest', Test) {
+    testClassesDirs = functionalTest.output.classesDirs
+    classpath = configurations[functionalTest.runtimeClasspathConfigurationName] + functionalTest.output
+}
+
+tasks.check.configure {
+    // Run the functional tests as part of `check`
+    dependsOn(functionalTestTask)
+}
