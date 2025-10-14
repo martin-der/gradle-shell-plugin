@@ -90,8 +90,8 @@ verbosity_level=0
 # log_debug "installer_prefix_alternatives = '$installer_prefix_alternatives'"
 
 display_banner() {
-	if [ "x${banner_to_display:-}" != "x" ]; then
-		cat "${banner_to_display}"
+	if [ "${mdu_sp_show_banner}" -ne 0 ]; then
+		cat "${MDU_DISPENSER_DIRECTORY}/resource/banner.txt"
 		echo
 	fi
 }
@@ -143,23 +143,25 @@ install_scripts() {
 }
 
 show_readme() {
-	if [ "x${readme_to_show:-}" = "x" ]; then
+	if [ ${mdu_sp_show_readme} -eq 0 ]; then
 		return 0
 	fi
+	local file="${MDU_DISPENSER_DIRECTORY}/resource/README.md"
 	while true; do
 		read -p "Do you want to view the 'README'? [Yn] " yn
 		case $yn in
 			[Nn] ) break ;;
 			* )
 				which less >/dev/null && {
-					less "$readme_to_show" || return 1
+
+					less "${file}" || return 1
 					break
 				}
 				which more >/dev/null && {
-					more "$readme_to_show" || return 1
+					more "${file}" || return 1
 					break
 				}
-				cat "$readme_to_show" || return 1
+				cat "${file}" || return 1
 				return 0 ;;
 		esac
 	done
@@ -190,7 +192,7 @@ execute_user_script() {
 # |      L A U N C H        |
 # ---------------------------
 
-[ ${action} = 'LAUNCH' ] && {
+if [ ${action} = 'LAUNCH' ]; then
 
 	log_debug cd "${MDU_ORIGINAL_WORK_DIR}"
 	cd "${MDU_ORIGINAL_WORK_DIR}"
@@ -200,7 +202,7 @@ execute_user_script() {
 	log_debug "execute 'content/content/${mdu_sp_executable_reactor_script}'"
 	"${MDU_DISPENSER_DIRECTORY}/content/${mdu_sp_executable_reactor_script}"
 	exit $?
-}
+fi
 
 # ---------------------------
 # |      I N S T A L L      |
@@ -210,9 +212,7 @@ display_banner
 
 log_info "Installation of '${mdu_sp_package_label}' (${mdu_sp_package_version})"
 
-[ ${mdu_sp_show_readme} -ne 0 ] && {
-	show_readme
-}
+show_readme
 
 exit 99
 

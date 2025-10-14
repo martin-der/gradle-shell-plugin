@@ -322,6 +322,14 @@ public class ShellPackagePlugin implements Plugin<Project> {
             }
         };
 
+        if (extension.banner.content.isDefined()) {
+            createDirectoryIfNeeded.run();
+
+            final File banner = extension.banner.content.resolve(project);
+
+            copyResource(banner, new File(resourceDir, "banner.txt"), "banner");
+        }
+
         if (extension.installer.readme.isDefined()) {
             createDirectoryIfNeeded.run();
 

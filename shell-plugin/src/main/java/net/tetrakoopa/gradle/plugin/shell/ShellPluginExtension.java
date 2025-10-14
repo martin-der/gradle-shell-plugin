@@ -20,12 +20,13 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import net.tetrakoopa.gradle.PathOrContentLocation;
+import net.tetrakoopa.gradle.plugin.exception.InvalidPluginConfigurationException;
 import net.tetrakoopa.gradle.plugin.exception.ShellPackagePluginException;
 import net.tetrakoopa.gradle.plugin.usual.DefaultInstallSpec;
 import net.tetrakoopa.gradle.plugin.usual.InstallSpec;
 
 @Getter @Setter
-public class ShellPluginExtension {
+public class ShellPluginExtension implements InvalidPluginConfigurationException.ConfigurationPath.Builder {
 
 	@Getter(AccessLevel.NONE)
 	public static final String NAME = "shell_package";
@@ -91,7 +92,9 @@ public class ShellPluginExtension {
 		}
 	}
 	public class Banner {
-		final PathOrContentLocation content = new PathOrContentLocation.Default();
+		void content(Closure<PathOrContentLocation> closure) { ((PathOrContentLocation.Default)content).__configure(closure, "banner content"); }
+	
+		PathOrContentLocation content = new PathOrContentLocation.Default();
 		Closure<String> replace;
 	}
 
@@ -185,7 +188,12 @@ public class ShellPluginExtension {
 	void information(Closure<Information> closure) { ConfigureUtil.configure(closure, information); }
 	// void output(Closure closure) { ConfigureUtil.configure(closure, output); }
 	// void documentation(Closure closure) { ConfigureUtil.configure(closure, documentation); }
-	void banner(Closure<Banner> closure) { ConfigureUtil.configure(closure, banner); }
+	void banner(Closure<Banner> closure) { 
+		ConfigureUtil.configure(closure, banner);
+		if (banner.content == null || !banner.content.isDefined()) {
+			throw new InvalidPluginConfigurationException(configurationPath("banner", "content"), "Content must be defined");
+		} 
+	}
 	void installer(Closure<Installer> closure) { ConfigureUtil.configure(closure, installer); }
 	void launcher(Closure<Launcher> closure) { 
 		launcher = new Launcher();
