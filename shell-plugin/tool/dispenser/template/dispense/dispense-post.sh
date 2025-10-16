@@ -125,7 +125,7 @@ print_install_locations() {
    echo "${index}) a custom location..." ;
 }
 
-install_scripts() {
+install_content() {
 	local install_dir="$1"
 	local target_name
 	local target
@@ -169,18 +169,10 @@ show_readme() {
 }
 
 execute_user_script() {
-	if [ "x$user_script_to_execute" = "x" ]; then
+	if [ ${mdu_sp_execute_user_script} -eq 0 ]; then
 		return 0
 	fi
-	while true; do
-		read -p "$user_script_question [yn] " yn
-		case $yn in
-			[Yy]* ) break ;;
-			[Nn]* ) return 0 ;;
-			* ) echo "Please answer Yes or No." ;;
-		esac
-	done
-	sh "$user_script_to_execute"
+	sh "${mdu_sp_user_script}"
 	local result=$?
 	if [ $result -ne 0 ] ; then
 		log_error "User script exited with ${result}"
@@ -214,7 +206,7 @@ log_info "Installation of '${mdu_sp_package_label}' (${mdu_sp_package_version})"
 
 show_readme
 
-exit 99
+# exit 99
 
 install_with_terminal() {
 	local KNOWN_TERMS="xterm konsole gnome-terminal rxvt dtterm eterm Eterm xfce4-terminal lxterminal kvt aterm terminology"
@@ -243,15 +235,6 @@ install_with_terminal() {
 	return $?
 }
 
-#if [ -t 1 ] ; then
-# if tty -s; then
-	# ./install.sh
-# else
-# 	install_with_terminal || {
-# 		echo "Unable to run installation script with terminal" >&2
-# 		exit 1
-# 	}
-# fi
 
 
 install_location_count=$(get_install_locations_count)
@@ -274,22 +257,24 @@ while true; do
 done
 
 install_choice=$(($install_choice-1))
-[ $install_choice -lt $install_location_count ] && {
+if [ $install_choice -lt $install_location_count ]; then
 	install_location="$(get_install_location $install_choice)"
-} || {
+else
 	while true ; do
 		read -p "Choose directory to install scripts in : " install_location
 		[ "x$install_choice" != "x" ] && break
 	done
-}
+fi
 install_location="${install_location%/}"
 log_info "Install in : '$install_location'"
 
-install_scripts "$install_location" || {
+install_content "$install_location" || {
 	log_error "Failed to install scripts" >&2
 	read dummy
 	exit 1
 }
 
 
-execute_user_script
+execute_user_script || exit 2
+
+exit 0

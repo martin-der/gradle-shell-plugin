@@ -33,7 +33,7 @@ public interface PathOrContentLocation {
 	@Getter @Setter
 	public class Default implements PathOrContentLocation {
 
-		public void __configure(Closure<PathOrContentLocation> closure, String forWhat) {
+		public void __configure(Closure<? extends PathOrContentLocation> closure, String forWhat) {
 			ConfigureUtil.configure(closure, this);
 			checkOnlyOneDefinition(forWhat);
 		}

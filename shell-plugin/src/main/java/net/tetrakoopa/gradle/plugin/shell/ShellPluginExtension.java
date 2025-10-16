@@ -19,11 +19,13 @@ import groovy.lang.Closure;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import net.tetrakoopa.gradle.ModifiablePathOrContentLocation;
 import net.tetrakoopa.gradle.PathOrContentLocation;
 import net.tetrakoopa.gradle.plugin.exception.InvalidPluginConfigurationException;
 import net.tetrakoopa.gradle.plugin.exception.ShellPackagePluginException;
 import net.tetrakoopa.gradle.plugin.usual.DefaultInstallSpec;
 import net.tetrakoopa.gradle.plugin.usual.InstallSpec;
+import net.tetrakoopa.gradle.plugin.usual.ShellCallback;
 
 @Getter @Setter
 public class ShellPluginExtension implements InvalidPluginConfigurationException.ConfigurationPath.Builder {
@@ -32,28 +34,40 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 	public static final String NAME = "shell_package";
 
 	@Getter
-	public enum DualActionModeStrategy {
-		DEFAULT_TO_LAUNCHER("default-to-laucher"),
-		REQUIRE_ACTION_MODE("require-action-mode");
+	public enum MultiActionModeStrategy {
+		ACTION_MODE_PREFIX("action-mode-prefix"),
+		DESAMBIGUATION_FUNCTION("disambiguation-function");
 
-		private final String label;
+		private final String code;
 
-		DualActionModeStrategy(String label) {
-			this.label = label;
+		MultiActionModeStrategy(String code) {
+			this.code = code;
 		}
 
-		public static DualActionModeStrategy byLabel(String label) {
+		public static MultiActionModeStrategy byCode(String label) {
 			if (label == null) {
 				return null;
 			}
-			for (DualActionModeStrategy possibleStrategy : DualActionModeStrategy.values()) {
-				if (possibleStrategy.label.equals(label)) {
+			for (MultiActionModeStrategy possibleStrategy : MultiActionModeStrategy.values()) {
+				if (possibleStrategy.code.equals(label)) {
 					return possibleStrategy;
 				}
 			}
-			throw new IllegalArgumentException("No such "+DualActionModeStrategy.class.getName()+"."+label);
+			throw new IllegalArgumentException("No such "+MultiActionModeStrategy.class.getName()+"."+label);
 		}
 	}
+
+	@Getter
+	public class MultiAction {
+		private MultiActionModeStrategy mode;
+
+		public void setMode(String label) {
+			mode = MultiActionModeStrategy.byCode(label);
+		}
+
+		private ShellCallback desambiguation;
+	}
+
 
 	@Inject
     public ShellPluginExtension(ObjectFactory objects, Project project) {
@@ -91,12 +105,6 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 			this.documentationDirectory = file;
 		}
 	}
-	public class Banner {
-		void content(Closure<PathOrContentLocation> closure) { ((PathOrContentLocation.Default)content).__configure(closure, "banner content"); }
-	
-		PathOrContentLocation content = new PathOrContentLocation.Default();
-		Closure<String> replace;
-	}
 
 	@Getter
 	public class Information {
@@ -126,9 +134,9 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		}
 		public class UserScript {
 			final PathOrContentLocation script = new PathOrContentLocation.Default();
-			String question;
-			// def script(Closure closure) { script.__configure(closure, "installer userScript script") }
+			final Map<String, String> environment = new HashMap<>();
 		}
+		
 		public class Licence {
 			final PathOrContentLocation licence = new PathOrContentLocation.Default();
 			String preamble;
@@ -138,7 +146,7 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 
 		final Prefix prefix = new Prefix();
 		final Licence licence = new Licence();
-		final PathOrContentLocation readme = new PathOrContentLocation.Default();
+		ModifiablePathOrContentLocation readme;
 		final UserScript userScript = new UserScript();
 
 		private final List<InstallSpec> installSpecs = new ArrayList<InstallSpec>();
@@ -156,7 +164,10 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		// void makeExecutable(boolean executable) { this.executable = executable }
 
 		void userScript(Closure<UserScript> closure) { ConfigureUtil.configure(closure, userScript); }
-		void readme(Closure<PathOrContentLocation> closure) { ((PathOrContentLocation.Default)readme).__configure(closure, "installer readme"); }
+		void readme(Closure<PathOrContentLocation> closure) { 
+			readme = new ModifiablePathOrContentLocation.Default();
+			((ModifiablePathOrContentLocation.Default)readme).__configure(closure, "installer readme"); 
+		}
 		void licence(Closure<Licence> closure) { ConfigureUtil.configure(closure, licence); }
 	}
 	@Getter @Setter
@@ -166,20 +177,21 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		private Map<String, String> environment = new HashMap<>();
 	}
 
-	private DualActionModeStrategy actionMode;
-	public void setActionMode(String label) {
-		actionMode = DualActionModeStrategy.byLabel(label);
-	}
+	final MultiAction action = new MultiAction();
 
 	Property<CopySpec> source;
 	String distributionName;
 	String version;
 	final Information information = new Information();
-	final Banner banner = new Banner();
+	ModifiablePathOrContentLocation banner;
 	// final Output output = new Output(project);
 	// Documentation documentation = new Documentation();
 	final Installer installer = new Installer();
 	Launcher launcher;
+
+	void action(Closure<MultiAction> closure) { 
+		ConfigureUtil.configure(closure, action);
+	}
 
 	void source(Closure<CopySpec> closure) {
 		source.set(project.copySpec(closure));
@@ -188,11 +200,12 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 	void information(Closure<Information> closure) { ConfigureUtil.configure(closure, information); }
 	// void output(Closure closure) { ConfigureUtil.configure(closure, output); }
 	// void documentation(Closure closure) { ConfigureUtil.configure(closure, documentation); }
-	void banner(Closure<Banner> closure) { 
+	void banner(Closure<ModifiablePathOrContentLocation> closure) {
+		banner = new ModifiablePathOrContentLocation.Default();
 		ConfigureUtil.configure(closure, banner);
-		if (banner.content == null || !banner.content.isDefined()) {
-			throw new InvalidPluginConfigurationException(configurationPath("banner", "content"), "Content must be defined");
-		} 
+		if (!banner.isDefined()) {
+			throw new InvalidPluginConfigurationException(configurationPath("banner"), "No path defined");
+		}
 	}
 	void installer(Closure<Installer> closure) { ConfigureUtil.configure(closure, installer); }
 	void launcher(Closure<Launcher> closure) { 

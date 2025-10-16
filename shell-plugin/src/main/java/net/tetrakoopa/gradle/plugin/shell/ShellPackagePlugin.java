@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -17,14 +18,19 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import lombok.Cleanup;
+import net.tetrakoopa.gradle.ModifiablePathOrContentLocation;
+import net.tetrakoopa.gradle.PathOrContentLocation;
 import net.tetrakoopa.gradle.SystemUtil;
 import net.tetrakoopa.gradle.plugin.exception.ShellPackagePluginException;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
+import org.gradle.api.Transformer;
+import org.gradle.api.file.CopySpec;
 import org.gradle.api.tasks.Copy;
 import org.gradle.api.tasks.TaskProvider;
+import org.jspecify.annotations.Nullable;
 
 public class ShellPackagePlugin implements Plugin<Project> {
 
@@ -37,58 +43,13 @@ public class ShellPackagePlugin implements Plugin<Project> {
     @Override
     public void apply(Project project) {
 
-        // project.getExtensions().add(ShellPluginExtension.NAME, ShellPluginExtension.class);
-
         final ShellPluginExtension extension = project.getExtensions().create(ShellPluginExtension.NAME, ShellPluginExtension.class);
-        // final ShellPluginExtension0 extension00 = project.getExtensions().create(ShellPluginExtension.NAME, ShellPluginExtension0.class);
-        // project.getExtensions().add(ShellPluginExtension.NAME, ShellPluginExtension.class);
-        // final ShellPluginExtension extension = project.getExtensions().getByType(ShellPluginExtension.class);
-        
-
-        // dispenserIntermediateDir.mkdirs();
-
-        // final Task packaage = project.getTasks().register("package", task -> {
-
-        //     // ShellPluginExtension extension = project.getExtensions().create("shell_package", ShellPluginExtension.class);
-        //     final ShellPluginExtension extension2 = project.getExtensions().findByType(ShellPluginExtension.class);
-
-        //     task.doLast(s -> {
-        //         System.out.println("Hello from plugin 'shell' : "+extension.getName());
-        //         System.out.println("Hello from plugin 'shell' : "+extension.getInstaller().readme.getPath());
-        //     });
-        // }).get();
-        
-        // System.out.println("extension.source : "+extension.source);
+     
 
         project.afterEvaluate(p -> {
             postEvaluateSanityCheck(extension);
             addTasks(project, extension);
         });
-
-
-
-        // project.afterEvaluate(new Closure<Project>(project) {
-
-        //     public void doCall() {
-        //         project.getTasksByName("build", true).forEach(t -> t.dependsOn(dispenser));
-
-        //     }
-
-        // });
-        // dispenser.dependsOn("build");
-
-
-
-        // project.afterEvaluate(new Closure(project) {
-        //     final Task build = project.getTasksByName("build", false).iterator().next();
-
-        //     @Override
-        //     public Object call() {
-        //         dispenser.dependsOn(build);
-        //         packaage.dependsOn(build);
-        //         return super.call();
-        //     }
-        // });
 
     }
 
@@ -110,6 +71,8 @@ public class ShellPackagePlugin implements Plugin<Project> {
         internal.explodedPackageDir = explodedDir;
         final File contentDir = new File(explodedDir, "content");
         internal.contentDir = contentDir;
+        final File resourceDir = new File(explodedDir, "resource");
+        internal.resourceDir = resourceDir;
 
         final Copy prepareSourcesTask;
         {
@@ -122,7 +85,7 @@ public class ShellPackagePlugin implements Plugin<Project> {
         }
         prepareSourcesTask.setGroup(DISPENSER_TASK_GROUP);
 
-                
+              
         final Task dispenserTask = project.getTasks().register("dispenser", task -> {
 
             task.doLast(s -> {
@@ -171,6 +134,54 @@ public class ShellPackagePlugin implements Plugin<Project> {
 
         dispenserTask.setGroup(DISPENSER_TASK_GROUP);
         dispenserTask.dependsOn(prepareSourcesTask);
+
+        if (extension.installer.readme != null) {
+            final var content = extension.installer.readme;
+            final Copy copyReadMeTask;
+            {
+                final TaskProvider<Copy> taskProvider = project.getTasks().register("copyReadMe", Copy.class);
+                final var modify = content.getModify();
+                taskProvider.configure(copy -> {
+                    final CopySpec spec = project.copySpec();
+                    spec.from(extension.installer.readme.resolve(project));
+                    spec.rename((o) -> "README.md");
+                    copy.with(spec);
+                    copy.into(resourceDir);
+                    if (modify != null) {
+                        copy.filter(modify);
+                    }
+                });
+                copyReadMeTask = taskProvider.get();
+            }
+            copyReadMeTask.setGroup(DISPENSER_TASK_GROUP);
+            copyReadMeTask.getOutputs().upToDateWhen(element -> false);
+            dispenserTask.dependsOn(copyReadMeTask);
+        }
+
+        if (extension.banner != null) {
+            final var content = extension.banner;
+            final Copy copyBannerTask;
+            {
+                final TaskProvider<Copy> taskProvider = project.getTasks().register("copyBanner", Copy.class);
+                final var modify = content.getModify();
+                taskProvider.configure(copy -> {
+                    final CopySpec spec = project.copySpec();
+                    spec.from(extension.banner.resolve(project));
+                    spec.rename((o) -> "banner.txt");
+                    copy.with(spec);
+                    copy.into(resourceDir);
+                    if (modify != null) {
+                        copy.filter(modify);
+                    }
+                });
+                copyBannerTask = taskProvider.get();
+            }
+            copyBannerTask.setGroup(DISPENSER_TASK_GROUP);
+            copyBannerTask.getOutputs().upToDateWhen(element -> false);
+            dispenserTask.dependsOn(copyBannerTask);
+        }
+
+  
 
     }
 
@@ -322,22 +333,6 @@ public class ShellPackagePlugin implements Plugin<Project> {
             }
         };
 
-        if (extension.banner.content.isDefined()) {
-            createDirectoryIfNeeded.run();
-
-            final File banner = extension.banner.content.resolve(project);
-
-            copyResource(banner, new File(resourceDir, "banner.txt"), "banner");
-        }
-
-        if (extension.installer.readme.isDefined()) {
-            createDirectoryIfNeeded.run();
-
-            final File readme = extension.installer.readme.resolve(project);
-
-            copyResource(readme, new File(resourceDir, "README.md"), "readme");
-        }
-
         if (extension.launcher != null) {
             final var environment = extension.launcher.getEnvironment();
             if (!environment.isEmpty()) {
@@ -353,24 +348,6 @@ public class ShellPackagePlugin implements Plugin<Project> {
                 };
             }
         }
-    }
-
-    private void copyResource(File inputFile, File outputFile, String resource) throws IOException {
-
-            final FileInputStream input;
-            try {
-                input = new FileInputStream(inputFile);
-            } catch (FileNotFoundException fnex) {
-                throw new ShellPackagePluginException("Failed to produce resource '"+resource+"' : Source file not found : "+fnex.getMessage(), fnex);
-            }
-            try {
-                @Cleanup
-                final FileOutputStream output = new FileOutputStream(outputFile);
-                input.transferTo(output);
-
-            } finally {
-                input.close();
-            }
     }
 
     private String replaceValues(String string, Internal internal) {

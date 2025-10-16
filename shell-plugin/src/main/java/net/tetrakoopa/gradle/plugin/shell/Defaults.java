@@ -2,6 +2,7 @@ package net.tetrakoopa.gradle.plugin.shell;
 
 
 import lombok.experimental.UtilityClass;
+import net.tetrakoopa.gradle.plugin.shell.ShellPluginExtension.MultiActionModeStrategy;
 
 @UtilityClass
 public class Defaults {
@@ -10,6 +11,7 @@ public class Defaults {
 		// extension.ready = false;
 		extension.distributionName = null;
 		extension.version = null;
+		extension.action.setMode(MultiActionModeStrategy.ACTION_MODE_PREFIX.getCode());
 		extension.installer.prefix.useDefault = true;
 		extension.installer.prefix.alternatives("/usr/bin", "${HOME}/bin", "/usr/local/bin");
 		// extension.installer.licence.licence.location = shell_package.installer.licence.licence.path = null;

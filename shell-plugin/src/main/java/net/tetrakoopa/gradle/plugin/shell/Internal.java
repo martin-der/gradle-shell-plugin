@@ -10,10 +10,6 @@ import java.util.Map;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCopyDetails;
 
-// import lombok.Getter;
-// import lombok.Setter;
-
-// @Getter @Setter
 public class Internal {
 	String name;
 	Date buildDate;
@@ -21,6 +17,7 @@ public class Internal {
 	File workingDir;
 	File explodedPackageDir;
 	File contentDir;
+	File resourceDir;
 	File installerFilesRootDir;
 	ConfigurableFileCollection intermediateSources;
 	final List<FileCopyDetails> sourceDetails = new ArrayList<>();
