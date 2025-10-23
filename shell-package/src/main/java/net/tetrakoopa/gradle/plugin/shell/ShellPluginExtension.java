@@ -64,6 +64,9 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		public void setMode(String label) {
 			mode = MultiActionModeStrategy.byCode(label);
 		}
+		public void setMode(MultiActionModeStrategy mode) {
+			this.mode = mode;
+		}
 
 		private ShellCallback desambiguation;
 	}

@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-import org.codehaus.groovy.runtime.MethodClosure;
 import org.gradle.api.Project;
 
 import groovy.lang.Closure;

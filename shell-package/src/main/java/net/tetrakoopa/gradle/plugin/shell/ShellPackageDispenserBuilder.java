@@ -51,10 +51,10 @@ public class ShellPackageDispenserBuilder implements Closeable {
 		insertProperty("mdu_sp_package_label", internal.name);
 		insertProperty("mdu_sp_package_version", extension.version);
 		insertProperty("mdu_sp_action_mode_strategy", extension.getAction().getMode().name());
-		insertProperty("mdu_sp_show_readme", extension.installer.readme.isDefined());
-		insertProperty("mdu_sp_show_banner", extension.banner.isDefined());
-		insertProperty("mdu_sp_execute_user_script", extension.installer.userScript.script.isDefined());
-		insertProperty("mdu_sp_executable_reactor_script", extension.launcher.getScript());
+		insertProperty("mdu_sp_show_readme", extension.installer.readme != null ? true : true );
+		insertProperty("mdu_sp_show_banner", extension.banner != null);
+		insertProperty("mdu_sp_execute_user_script", extension.installer.userScript.script != null);
+		insertProperty("mdu_sp_executable_reactor_script", extension.launcher == null ? "" : extension.launcher.getScript());
 
 		write("\n");
 		write("\n");

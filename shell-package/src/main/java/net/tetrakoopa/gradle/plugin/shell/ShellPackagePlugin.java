@@ -22,6 +22,7 @@ import net.tetrakoopa.gradle.ModifiablePathOrContentLocation;
 import net.tetrakoopa.gradle.PathOrContentLocation;
 import net.tetrakoopa.gradle.SystemUtil;
 import net.tetrakoopa.gradle.plugin.exception.ShellPackagePluginException;
+import net.tetrakoopa.gradle.plugin.shell.ShellPluginExtension.MultiActionModeStrategy;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
@@ -108,7 +109,7 @@ public class ShellPackagePlugin implements Plugin<Project> {
                 try {
                     copyResources(explodedDir, project, extension, internal);
                 } catch (IOException e) {
-                    throw new RuntimeException("Failed to copy runtime util scripts : "+e.getMessage(), e);
+                    throw new RuntimeException("Failed to copy runtime resources : "+e.getMessage(), e);
                 }
 
                 try (ShellPackageDispenserBuilder builder = new ShellPackageDispenserBuilder(project, internal, extension)) {
@@ -191,6 +192,11 @@ public class ShellPackagePlugin implements Plugin<Project> {
             if (launcher.getScript() == null || launcher.getScript().isEmpty()) {
                 throw new ShellPackagePluginException("If a launcher is requested then a path to a the script to execute is required with 'launcher.script'");
             }
+        }
+
+        final var action = extension.getAction();
+        if (action.getMode() == null) {
+            action.setMode(MultiActionModeStrategy.ACTION_MODE_PREFIX.getCode());
         }
     }
 
@@ -312,7 +318,7 @@ public class ShellPackagePlugin implements Plugin<Project> {
                 final var output = new FileOutputStream(new File(scriptUtilsDir, resourceFileName));
 
                 inputStream.transferTo(new FileOutputStream(new File(scriptUtilsDir, resourceFileName)));
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw new IOException("Failed to copy '"+resourcePath+"'", e);
             }
         }
