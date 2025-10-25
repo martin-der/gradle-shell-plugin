@@ -10,7 +10,8 @@ dependencies {
     compileOnly("org.projectlombok:lombok:1.18.42")
 	annotationProcessor("org.projectlombok:lombok:1.18.42")
 
-    testImplementation 'junit:junit:4.13'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.13.0-M3'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.13.0-M3'
 }
 
 gradlePlugin {
@@ -35,6 +36,11 @@ sourceSets {
     }
 }
 
+test {
+    // Enable JUnit 5 (Gradle 4.6+).
+    // FIXME Does not work ::::
+    useJUnitPlatform()
+}
 
 def functionalTest = sourceSets.create('functionalTest')
 gradlePlugin.testSourceSets(functionalTest)

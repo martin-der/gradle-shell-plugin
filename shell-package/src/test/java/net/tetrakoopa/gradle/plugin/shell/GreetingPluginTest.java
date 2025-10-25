@@ -1,8 +1,9 @@
 package net.tetrakoopa.gradle.plugin.shell;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.gradle.api.Project;
-import org.junit.Test;
-import static org.junit.Assert.assertNotNull;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 
 public class GreetingPluginTest {
