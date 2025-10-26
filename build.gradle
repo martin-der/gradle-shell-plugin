@@ -1,5 +1,5 @@
 
-wrapper { gradleVersion = '5.1' }
+wrapper { gradleVersion = '9.1.0' }
 
 
 allprojects {
