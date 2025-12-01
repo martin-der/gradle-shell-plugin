@@ -9,8 +9,6 @@ public class Defaults {
 
 	public static void setShellPackageDefaultsConfiguration(ShellPluginExtension extension) {
 		// extension.ready = false;
-		extension.distributionName = null;
-		extension.version = null;
 		extension.action.setMode(MultiActionModeStrategy.ACTION_MODE_PREFIX.getCode());
 		extension.installer.prefix.useDefault = true;
 		extension.installer.prefix.alternatives("/usr/bin", "${HOME}/bin", "/usr/local/bin");

@@ -1,34 +1,47 @@
-package net.tetrakoopa.gradle.plugin.shell;
+package net.tetrakoopa.gradle.plugin.shell.documentation;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import org.gradle.api.Project;
+// import java.io.Closeable;
+// import java.io.File;
+// import java.io.FileNotFoundException;
+// import java.io.FileOutputStream;
+// import java.io.IOException;
+// import java.io.InputStream;
+// import java.io.OutputStream;
 
-import lombok.Cleanup;
-import net.tetrakoopa.gradle.SystemUtil;
+// import org.gradle.api.DefaultTask;
+// import org.gradle.api.Project;
+// import org.gradle.api.file.CopySourceSpec;
+// import org.gradle.api.file.RegularFileProperty;
+// import org.gradle.api.tasks.Input;
+// import org.gradle.api.tasks.OutputFile;
+// import org.gradle.api.tasks.TaskAction;
 
-public class ShellPackageDispenserBuilder implements Closeable {
+// import lombok.Cleanup;
+// import net.tetrakoopa.gradle.SystemUtil;
 
-	private final Internal internal;
+public class ShellPackageDocumentationTask /* extends DefaultTask */ {
+
+/* 	private final Internal internal;
 	private final ShellPluginExtension extension;
 
-	private final File dispenseFile;
-	private final OutputStream outputStream;
+	private final File documentationDirectory;
 
-	public ShellPackageDispenserBuilder(Project project, Internal internal, ShellPluginExtension extension) throws FileNotFoundException {
+	@Input
+	private CopySourceSpec sources;
+
+	public ShellPackageDocumentationTask(Project project, Internal internal, ShellPluginExtension extension) throws FileNotFoundException {
 		this.internal = internal;
 		this.extension = extension;
-		this.dispenseFile = project.file(internal.explodedPackageDir+"/dispense.sh");
-		this.outputStream = new FileOutputStream(dispenseFile);
+		this.documentationDirectory = project.file(internal.workingDir+"/documentation");
 	}
 	
+	// @OutputFile
+    // abstract RegularFileProperty getMessageFile()
 
-	public void build() throws FileNotFoundException, IOException {
+    // @OutputFile
+// 
+    @TaskAction 
+	public void generate() throws FileNotFoundException, IOException {
 
 		writeClassPathResource("/template/dispense/dispense-pre.sh");
 		
@@ -51,10 +64,10 @@ public class ShellPackageDispenserBuilder implements Closeable {
 		insertProperty("mdu_sp_package_label", internal.name);
 		insertProperty("mdu_sp_package_version", extension.version);
 		insertProperty("mdu_sp_action_mode_strategy", extension.getAction().getMode().name());
-		insertProperty("mdu_sp_show_readme", extension.installer.readme != null ? true : true );
-		insertProperty("mdu_sp_show_banner", extension.banner != null);
-		insertProperty("mdu_sp_execute_user_script", extension.installer.userScript.script != null);
-		insertProperty("mdu_sp_executable_reactor_script", extension.launcher == null ? "" : extension.launcher.getScript());
+		insertProperty("mdu_sp_show_readme", extension.installer.readme.isDefined());
+		insertProperty("mdu_sp_show_banner", extension.banner.isDefined());
+		insertProperty("mdu_sp_execute_user_script", extension.installer.userScript.script.isDefined());
+		insertProperty("mdu_sp_executable_reactor_script", extension.launcher.getScript());
 
 		write("\n");
 		write("\n");
@@ -141,6 +154,6 @@ public class ShellPackageDispenserBuilder implements Closeable {
 	// 		destination.append("${propertyName}=\n")
 	// 	}
 	// }
-
+ */
 
 }

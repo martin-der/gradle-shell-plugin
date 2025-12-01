@@ -54,6 +54,13 @@ public class IOUtil {
 	// 		throw new IOException(isex.getMessage(), isex.getCause());
 	// 	}
 	// }
+	public static void copyFile(File source, File target) throws IOException {
+		copyFile(source.toPath(), target.toPath());
+	}
+	public static void copyFile(Path source, Path target)
+            throws IOException {
+           Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+	}
 
 	public static void copyDirectory(File source, File target) throws IOException {
 		copyDirectory(source.toPath(), target.toPath());

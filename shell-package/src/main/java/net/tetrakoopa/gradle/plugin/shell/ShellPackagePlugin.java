@@ -1,44 +1,34 @@
 package net.tetrakoopa.gradle.plugin.shell;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
-import java.util.regex.Pattern;
-
-import lombok.Cleanup;
-import net.tetrakoopa.gradle.ModifiablePathOrContentLocation;
-import net.tetrakoopa.gradle.PathOrContentLocation;
-import net.tetrakoopa.gradle.SystemUtil;
+import java.util.function.UnaryOperator;
 import net.tetrakoopa.gradle.plugin.exception.ShellPackagePluginException;
 import net.tetrakoopa.gradle.plugin.shell.ShellPluginExtension.MultiActionModeStrategy;
+import net.tetrakoopa.gradle.plugin.task.DispenserTask;
+import net.tetrakoopa.gradle.plugin.task.TextFileSourceTask;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.Task;
-import org.gradle.api.Transformer;
 import org.gradle.api.file.CopySpec;
 import org.gradle.api.tasks.Copy;
 import org.gradle.api.tasks.TaskProvider;
-import org.jspecify.annotations.Nullable;
 
 public class ShellPackagePlugin implements Plugin<Project> {
 
  	private static final String DOCUMENTATION_TASK_GROUP = "documentation";
 	private static final String DISPENSER_TASK_GROUP = "shell";
-    private static final String createShellPackageCommand = "shar";
+    // private static final String createShellPackageCommand = "shar";
 
+
+    public static final String PLUGIN_WORK_FOLDER = "shell";
+    public static final String DISPENSER_WORK_FOLDER = "dispenser";
+    public static final String EXPLODED_WORK_FOLDER = "exploded";
+    public static final String EXPLODED_WORK_PATH = PLUGIN_WORK_FOLDER+File.separator+DISPENSER_WORK_FOLDER+File.separator+EXPLODED_WORK_FOLDER;
+    public static final String EXPLODED_RESOURCE_PATH = "resource";
+
+    private static final String RESOURCE_PATH_BANNER = ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+EXPLODED_RESOURCE_PATH+File.separator+"banner.txt";
+
+    public static final String defaultName = "unknown";
 
 
     @Override
@@ -46,95 +36,99 @@ public class ShellPackagePlugin implements Plugin<Project> {
 
         final ShellPluginExtension extension = project.getExtensions().create(ShellPluginExtension.NAME, ShellPluginExtension.class);
      
+        final Internal internal = new Internal();
+        internal.workingDir = new File(project.getLayout().getBuildDirectory().get().getAsFile(), PLUGIN_WORK_FOLDER);
+        final File dispenserWorkingDir = new File(internal.workingDir, DISPENSER_WORK_FOLDER);
+        internal.dispenserWorkingDir = dispenserWorkingDir;
+        final File explodedDir = new File(dispenserWorkingDir, "exploded");
+        internal.explodedPackageDir = explodedDir;
+        final File contentDir = new File(explodedDir, "content");
+        internal.contentDir = contentDir;
+        final File resourceDir = new File(explodedDir, EXPLODED_RESOURCE_PATH);
+        internal.resourceDir = resourceDir;
+
+        {
+            final TaskProvider<Copy> prepareSourcesTaskProvider = project.getTasks().register("prepareSources", Copy.class, copy -> {
+                copy.with(project.provider(() -> extension.getSource().get()).get());
+                copy.into(contentDir);
+            });
+            internal.task.prepareSources = prepareSourcesTaskProvider.get();
+        }
+
+        // {
+        //     // if (extension.getBanner() != null) {
+        //         final UnaryOperator<String> identityFunction = UnaryOperator.identity();
+        //         final TaskProvider<TextFileSourceTask> prepareSourcesTaskProvider = project.getTasks().register("banner", TextFileSourceTask.class, banner -> {
+        //             final var bannerExtension = extension.getBanner();
+        //             banner.modify(project.provider(() -> {
+        //                 final var modify = extension.getBanner() == null ? null : extension.getBanner().getModify();
+        //                 return modify == null ? identityFunction : modify;
+        //             }).get());
+        //             banner.getSourceFile().set(project.provider(() -> {
+        //                 return extension.getBanner().getSource();
+        //             }).get());
+        //             banner.getDestinationFile().set(project.provider(() -> project.getLayout().getBuildDirectory().file(ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+"banner.txt")).get());
+
+        //         });
+        //         internal.task.prepareBanner = prepareSourcesTaskProvider.get();
+        //         internal.task.prepareBanner.setGroup(DISPENSER_TASK_GROUP);
+        //         internal.task.dispenserTask.dependsOn(internal.task.prepareBanner);
+        //     // }
+        // }
+
+        final TaskProvider<DispenserTask> dispenserTaskProvider = project.getTasks().register("dispenser", DispenserTask.class, dispenser -> {
+            // dispenser.getSources().from(project.provider(() -> extension.getSource().get()).get());
+            // dispenser.target(new File(contentDir, "dispenser.sh"));
+            dispenser.getMultiActionModeStrategy().set(project.provider(() -> extension.getAction().getMode()));
+            dispenser.getProjectName().set(project.provider(() -> extension.getName().getOrElse(defaultName)));
+            dispenser.getProjectLabel().set(project.provider(() -> extension.getName().getOrElse(defaultName)));
+            dispenser.getProjectVersion().set(project.provider(() -> extension.getVersion().getOrNull()));
+            dispenser.getBanner().set(project.provider(() -> extension.getBanner() == null ? null : project.getLayout().getBuildDirectory().file(RESOURCE_PATH_BANNER).get()));
+        });
+        final DispenserTask dispenserTask = internal.task.dispenserTask = dispenserTaskProvider.get();
+
+        dispenserTask.setGroup(DISPENSER_TASK_GROUP);
+        dispenserTask.dependsOn(internal.task.prepareSources);
+        internal.task.dispenserTask = dispenserTask;
+
 
         project.afterEvaluate(p -> {
             postEvaluateSanityCheck(extension);
-            addTasks(project, extension);
+            addTasks(project, extension, internal);
         });
 
     }
 
-    private void addTasks(Project project, ShellPluginExtension extension) {
+    private void addTasks(Project project, ShellPluginExtension extension, Internal internal) {
 
-        final Internal internal = new Internal();
         internal.workingDir = new File(project.getLayout().getBuildDirectory().get().getAsFile(), "shell");
 
         if (extension.getDistributionName() != null) {
-            internal.name = extension.getDistributionName();
-        } else if (extension.getName() != null) {
+            internal.name = extension.getDistributionName().getOrNull();
+        } else if (extension.getName().isPresent()) {
             internal.name = extension.getName().get();
         } else {
             internal.name = project.getName();
         }
 
-        final File dispenserWorkingDir = new File(internal.workingDir, "dispenser");
-        final File explodedDir = new File(dispenserWorkingDir, "exploded");
-        internal.explodedPackageDir = explodedDir;
-        final File contentDir = new File(explodedDir, "content");
-        internal.contentDir = contentDir;
-        final File resourceDir = new File(explodedDir, "resource");
-        internal.resourceDir = resourceDir;
-
-        final Copy prepareSourcesTask;
         {
-            final TaskProvider<Copy> prepareSourcesTaskProvider = project.getTasks().register("prepareSources", Copy.class);
-            prepareSourcesTaskProvider.configure(copy -> {
-                    copy.with(extension.getSource().get());
-                    copy.into(contentDir);
-            });
-            prepareSourcesTask = prepareSourcesTaskProvider.get();
+            if (extension.getBanner() != null) {
+                final UnaryOperator<String> identityFunction = UnaryOperator.identity();
+                final TaskProvider<TextFileSourceTask> prepareSourcesTaskProvider = project.getTasks().register("banner", TextFileSourceTask.class, banner -> {
+                    banner.modify(project.provider(() -> {
+                        final var modify = extension.getBanner().getModify();
+                        return modify == null ? identityFunction : modify;
+                    }).get());
+                    banner.getSourceFile().set(project.provider(() -> extension.getBanner().getSource()).get());
+                    banner.getDestinationFile().set(project.provider(() -> project.getLayout().getBuildDirectory().file(RESOURCE_PATH_BANNER)).get());
+
+                });
+                internal.task.prepareBanner = prepareSourcesTaskProvider.get();
+                internal.task.prepareBanner.setGroup(DISPENSER_TASK_GROUP);
+                internal.task.dispenserTask.dependsOn(internal.task.prepareBanner);
+            }
         }
-        prepareSourcesTask.setGroup(DISPENSER_TASK_GROUP);
 
-              
-        final Task dispenserTask = project.getTasks().register("dispenser", task -> {
-
-            task.doLast(s -> {
-
-                final String fileName;
-                if (extension.getDistributionName() != null) {
-                    fileName = extension.getDistributionName();
-                } else if (extension.getName() != null) {
-                    fileName = extension.getName().get();
-                } else {
-                    fileName = project.getName();
-                }
-
-                try {
-                    copyScriptUtils(explodedDir);
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to copy runtime util scripts : "+e.getMessage(), e);
-                }
-
-                try {
-                    copyResources(explodedDir, project, extension, internal);
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to copy runtime resources : "+e.getMessage(), e);
-                }
-
-                try (ShellPackageDispenserBuilder builder = new ShellPackageDispenserBuilder(project, internal, extension)) {
-                    builder.build();
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to create dispense script : "+e.getMessage(), e);
-                }
-
-                final File archiveFile = new File(dispenserWorkingDir, fileName+".shar");
-                createArchive(archiveFile, extension, internal);
-
-                try {
-                    SystemUtil.makeExecutable(archiveFile, true, false);
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to make dispense executable : "+e.getMessage(), e);
-                }
-
-                postackageCreationSanityCheck(extension, internal);
-
-            });
-        }).get();
-
-
-        dispenserTask.setGroup(DISPENSER_TASK_GROUP);
-        dispenserTask.dependsOn(prepareSourcesTask);
 
         if (extension.installer.readme != null) {
             final var content = extension.installer.readme;
@@ -147,7 +141,7 @@ public class ShellPackagePlugin implements Plugin<Project> {
                     spec.from(extension.installer.readme.resolve(project));
                     spec.rename((o) -> "README.md");
                     copy.with(spec);
-                    copy.into(resourceDir);
+                    copy.into(internal.resourceDir);
                     if (modify != null) {
                         copy.filter(modify);
                     }
@@ -156,31 +150,31 @@ public class ShellPackagePlugin implements Plugin<Project> {
             }
             copyReadMeTask.setGroup(DISPENSER_TASK_GROUP);
             copyReadMeTask.getOutputs().upToDateWhen(element -> false);
-            dispenserTask.dependsOn(copyReadMeTask);
+            internal.task.dispenserTask.dependsOn(copyReadMeTask);
         }
 
-        if (extension.banner != null) {
-            final var content = extension.banner;
-            final Copy copyBannerTask;
-            {
-                final TaskProvider<Copy> taskProvider = project.getTasks().register("copyBanner", Copy.class);
-                final var modify = content.getModify();
-                taskProvider.configure(copy -> {
-                    final CopySpec spec = project.copySpec();
-                    spec.from(extension.banner.resolve(project));
-                    spec.rename((o) -> "banner.txt");
-                    copy.with(spec);
-                    copy.into(resourceDir);
-                    if (modify != null) {
-                        copy.filter(modify);
-                    }
-                });
-                copyBannerTask = taskProvider.get();
-            }
-            copyBannerTask.setGroup(DISPENSER_TASK_GROUP);
-            copyBannerTask.getOutputs().upToDateWhen(element -> false);
-            dispenserTask.dependsOn(copyBannerTask);
-        }
+        // if (extension.banner != null) {
+        //     final ModifiablePathOrContentLocation content = extension.banner;
+        //     final Copy copyBannerTask;
+        //     {
+        //         final TaskProvider<Copy> taskProvider = project.getTasks().register("copyBanner", Copy.class);
+        //         final var modify = content.getModify();
+        //         taskProvider.configure(copy -> {
+        //             final CopySpec spec = project.copySpec();
+        //             spec.from(extension.banner.resolve(project));
+        //             spec.rename((o) -> "banner.txt");
+        //             copy.with(spec);
+        //             copy.into(internal.resourceDir);
+        //             if (modify != null) {
+        //                 copy.filter(modify);
+        //             }
+        //         });
+        //         copyBannerTask = taskProvider.get();
+        //     }
+        //     copyBannerTask.setGroup(DISPENSER_TASK_GROUP);
+        //     copyBannerTask.getOutputs().upToDateWhen(element -> false);
+        //     internal.task.dispenserTask.dependsOn(copyBannerTask);
+        // }
 
   
 
@@ -209,152 +203,37 @@ public class ShellPackagePlugin implements Plugin<Project> {
         }
     }
 
-    private void createArchive(File archiveFile, ShellPluginExtension extension, final Internal internal) {
-        final File dispenserFile = archiveFile;
-        final String author = extension.information.maintainer != null && extension.information.maintainer.name != null && !extension.information.maintainer.name.isBlank() 
-            ? extension.information.maintainer.name.trim() : null;
-        final FileOutputStream dispenserInputStream;
+    // private void copyResources(File explodedDir, Project project, ShellPluginExtension extension, Internal internal) throws IOException {
+    //     final AtomicBoolean directoryCreateed = new AtomicBoolean();
 
-        try {
-            dispenserInputStream = new FileOutputStream(dispenserFile);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException("Failed to open dispenser file '"+dispenserFile.getAbsolutePath()+"' from wrting : "+e.getMessage(), e);
-        }
+    //     final File resourceDir = new File(explodedDir, "resource");
 
-        try {
+    //     final Runnable createDirectoryIfNeeded = () -> {
+    //         if (directoryCreateed.compareAndSet(false, true)) {
+    //             try {
+    //                 Files.createDirectories(resourceDir.toPath());
+    //             } catch (Exception ex) {
+    //                 throw new ShellPackagePluginException("Failed to create resource directory '"+resourceDir.getAbsolutePath()+"' : "+ex.getMessage(), ex);
+    //             }
+    //         }
+    //     };
 
+    //     if (extension.launcher != null) {
+    //         final var environment = extension.launcher.getEnvironment();
+    //         if (!environment.isEmpty()) {
+    //             createDirectoryIfNeeded.run();
 
-            try {
-                this.getClass().getResourceAsStream("/dispenser/template/extract-pre.sh").transferTo(dispenserInputStream);
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to insert '/dispenser/template/extract-pre.sh'", e);
-            }
+    //             @Cleanup
+    //             final FileOutputStream environmentFile = new FileOutputStream(new File(resourceDir, "environment.sh"));
 
-            final ProcessBuilder builder = new ProcessBuilder();
-            builder.directory(internal.explodedPackageDir.getAbsoluteFile());
-            builder.command(createShellPackageCommand, "--quiet", "--quiet-unshar", "--submitter="+(author != null ? author : ""), ".");
-            
-            Process process;
-            try {
-                process = builder.start();
-
-                boolean trimingCommentAtStart = true;
-                try (final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                    
-                    final Pattern patternComment = Pattern.compile("^#.*");
-                    final Pattern patternExit = Pattern.compile("^exit[ ]+0");
-                    final Pattern patternEmpty = Pattern.compile("^[ \t]*");
-
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        if (trimingCommentAtStart) {
-                            if (patternComment.matcher(line).matches()) {
-                                continue;
-                            }
-                            trimingCommentAtStart = false;
-                        }
-                        if (patternExit.matcher(line).matches()) {
-                            final var byteBuffer = new ByteArrayOutputStream();
-                            final var buffer = new BufferedOutputStream(byteBuffer);
-                            buffer.write(line.getBytes());
-                            buffer.write('\n');
-                            boolean oneOrMoreNonEmptyLine = false;
-                            while ((line = reader.readLine()) != null) {
-                                buffer.write(line.getBytes());
-                                buffer.write('\n');
-                                if (!patternEmpty.matcher(line).matches()) {
-                                    oneOrMoreNonEmptyLine = true;
-                                    break;
-                                }
-                                oneOrMoreNonEmptyLine = true;
-                            }
-                            if (oneOrMoreNonEmptyLine) {
-                                dispenserInputStream.write(byteBuffer.toByteArray());
-                                dispenserInputStream.write('\n');
-                            } else {
-                                break;
-                            }
-                        } else {
-                            dispenserInputStream.write(line.getBytes());
-                            dispenserInputStream.write('\n');
-                        }
-                    }
-                }
-
-                final int exitCode = process.waitFor();
-                if (exitCode != 0) {
-                    throw new RuntimeException("Command '"+createShellPackageCommand+"' exited with "+exitCode);
-                }
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-
-            try {
-                this.getClass().getResourceAsStream("/dispenser/template/extract-post.sh").transferTo(dispenserInputStream);
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to insert '/dispenser/template/extract-post.sh'", e);
-            }
-
-        } finally {
-            try {
-                dispenserInputStream.close();
-            } catch (IOException e) {
-                    throw new RuntimeException("Failed to finalise dispenser file '"+dispenserFile.getAbsolutePath()+"' : "+e.getMessage(), e);
-            }
-        }
-
-    }
-
-    private void copyScriptUtils(File explodedDir) throws IOException {
-        final File scriptUtilsDir = new File(explodedDir, "util");
-        Files.createDirectory(scriptUtilsDir.toPath());
-        for (String resourceFileName : List.of("log.sh", "flowui-builder-json.sh", "flowui-dumbcli.sh", "flowui-humbletui.sh", "flowui.sh", "shell-util.sh")) {
-            final String resourcePath = "/runtime/"+resourceFileName;
-            try {
-                @Cleanup
-                final var inputStream = ResourceUtil.getClassPathResource(resourcePath);
-
-                @Cleanup
-                final var output = new FileOutputStream(new File(scriptUtilsDir, resourceFileName));
-
-                inputStream.transferTo(new FileOutputStream(new File(scriptUtilsDir, resourceFileName)));
-            } catch (Exception e) {
-                throw new IOException("Failed to copy '"+resourcePath+"'", e);
-            }
-        }
-    }
-
-    private void copyResources(File explodedDir, Project project, ShellPluginExtension extension, Internal internal) throws IOException {
-        final AtomicBoolean directoryCreateed = new AtomicBoolean();
-
-        final File resourceDir = new File(explodedDir, "resource");
-
-        final Runnable createDirectoryIfNeeded = () -> {
-            if (directoryCreateed.compareAndSet(false, true)) {
-                try {
-                    Files.createDirectories(resourceDir.toPath());
-                } catch (Exception ex) {
-                    throw new ShellPackagePluginException("Failed to create resource directory '"+resourceDir.getAbsolutePath()+"' : "+ex.getMessage(), ex);
-                }
-            }
-        };
-
-        if (extension.launcher != null) {
-            final var environment = extension.launcher.getEnvironment();
-            if (!environment.isEmpty()) {
-                createDirectoryIfNeeded.run();
-
-                @Cleanup
-                final FileOutputStream environmentFile = new FileOutputStream(new File(resourceDir, "environment.sh"));
-
-                for (var entry : environment.entrySet()) {
-                    final String key = entry.getKey();
-                    final String value = replaceValues(entry.getValue(), internal);
-                    environmentFile.write(("export "+key+"=\""+value+"\"\n").getBytes(StandardCharsets.UTF_8));
-                };
-            }
-        }
-    }
+    //             for (var entry : environment.entrySet()) {
+    //                 final String key = entry.getKey();
+    //                 final String value = replaceValues(entry.getValue(), internal);
+    //                 environmentFile.write(("export "+key+"=\""+value+"\"\n").getBytes(StandardCharsets.UTF_8));
+    //             };
+    //         }
+    //     }
+    // }
 
     private String replaceValues(String string, Internal internal) {
         return string

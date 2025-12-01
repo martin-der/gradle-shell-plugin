@@ -5,16 +5,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
-
+import java.util.function.Function;
 import javax.inject.Inject;
 
+import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.file.CopySpec;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
 import org.gradle.util.internal.ConfigureUtil;
-
 import groovy.lang.Closure;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -71,18 +70,38 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		private ShellCallback desambiguation;
 	}
 
+	@Getter
+	public class TextFileSource {
+		private File source;
+		private Function<String, String> modify;
+
+		public void source(Object file) {
+			this.source = project.file(file);
+		}
+
+		public void modify(Closure<String> modify) {
+			this.modify = line -> modify.call(line);
+		}
+
+	}
 
 	@Inject
     public ShellPluginExtension(ObjectFactory objects, Project project) {
 		this.project = project;
         this.name = objects.property(String.class);
+		this.distributionName = objects.property(String.class);
+		this.version = objects.property(String.class);
         this.source = objects.property(CopySpec.class);
+		this.source.convention(project.copySpec());
         // this.message = objects.property(String);
     }
 
 	private final Project project;
 
-    private Property<String> name;
+    private final Property<String> name;
+	Property<CopySpec> source;
+	private final Property<String> distributionName;
+	private final Property<String> version;
 
 	public class Output {
 
@@ -132,7 +151,7 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 				alternatives.add(prefix);
 			}
 			void alternatives(String... prefixes) {
-				Stream.of(prefixes).forEach(prefix -> alternative(prefix));
+				for (String prefix: prefixes) alternative(prefix);
 			}
 		}
 		public class UserScript {
@@ -182,11 +201,8 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 
 	final MultiAction action = new MultiAction();
 
-	Property<CopySpec> source;
-	String distributionName;
-	String version;
 	final Information information = new Information();
-	ModifiablePathOrContentLocation banner;
+	TextFileSource banner;
 	// final Output output = new Output(project);
 	// Documentation documentation = new Documentation();
 	final Installer installer = new Installer();
@@ -196,17 +212,28 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		ConfigureUtil.configure(closure, action);
 	}
 
-	void source(Closure<CopySpec> closure) {
-		source.set(project.copySpec(closure));
+	// void source(Closure<CopySpec> closure) {
+	// 	source.set(project.copySpec(closure));
+	// 	var qsd = source.get();
+	// 	                System.out.println("Closure source : ");
+    //             qsd.eachFile(f -> {
+    //                 System.out.println("- : "+f.getName()); 
+
+    //             });
+
+
+	// }
+	void source(Action<CopySpec> action) {
+		action.execute(source.get());
 	}
 
 	void information(Closure<Information> closure) { ConfigureUtil.configure(closure, information); }
 	// void output(Closure closure) { ConfigureUtil.configure(closure, output); }
 	// void documentation(Closure closure) { ConfigureUtil.configure(closure, documentation); }
-	void banner(Closure<ModifiablePathOrContentLocation> closure) {
-		banner = new ModifiablePathOrContentLocation.Default();
+	void banner(Closure<TextFileSource> closure) {
+		banner = new TextFileSource();
 		ConfigureUtil.configure(closure, banner);
-		if (!banner.isDefined()) {
+		if (banner.getSource() == null) {
 			throw new InvalidPluginConfigurationException(configurationPath("banner"), "No path defined");
 		}
 	}

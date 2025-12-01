@@ -91,7 +91,7 @@ verbosity_level=0
 
 display_banner() {
 	if [ "${mdu_sp_show_banner}" -ne 0 ]; then
-		cat "${MDU_DISPENSER_DIRECTORY}/resource/banner.txt"
+		cat "${MDU_SD_INSTALL_TEMP_DIR}/resource/banner.txt"
 		echo
 	fi
 }
@@ -146,7 +146,7 @@ show_readme() {
 	if [ ${mdu_sp_show_readme} -eq 0 ]; then
 		return 0
 	fi
-	local file="${MDU_DISPENSER_DIRECTORY}/resource/README.md"
+	local file="${MDU_SD_INSTALL_TEMP_DIR}/resource/README.md"
 	while true; do
 		read -p "Do you want to view the 'README'? [Yn] " yn
 		case $yn in
@@ -189,10 +189,10 @@ if [ ${action} = 'LAUNCH' ]; then
 	log_debug cd "${MDU_ORIGINAL_WORK_DIR}"
 	cd "${MDU_ORIGINAL_WORK_DIR}"
 
-	source "${MDU_DISPENSER_DIRECTORY}/resource/environment.sh"
+	source "${MDU_SD_INSTALL_TEMP_DIR}/resource/environment.sh"
 
 	log_debug "execute 'content/content/${mdu_sp_executable_reactor_script}'"
-	"${MDU_DISPENSER_DIRECTORY}/content/${mdu_sp_executable_reactor_script}"
+	"${MDU_SD_INSTALL_TEMP_DIRx}/content/${mdu_sp_executable_reactor_script}"
 	exit $?
 fi
 

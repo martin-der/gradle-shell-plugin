@@ -1,0 +1,1 @@
+echo "I am Foo the {{foo.title}}"
