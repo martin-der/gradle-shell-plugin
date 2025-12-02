@@ -10,12 +10,12 @@ import java.nio.charset.StandardCharsets;
 
 import org.junit.Test;
 
-public class DocumentationToMarkdownGeneratoratorTest {
+public class DocumentationToMarkdownGeneratorTest {
 	
 	@Test
 	public void dummy() throws IOException {
 		ByteArrayOutputStream outstream = new ByteArrayOutputStream();
-		DocumentationToMarkdownGeneratorator.convert(input("""
+		DocumentationToMarkdownGenerator.convert(input("""
 				# @description
 				# Some function
 				# @arg1 pouet 

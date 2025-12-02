@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
-public class DocumentationToMarkdownGeneratorator {
+public class DocumentationToMarkdownGenerator {
     
     private static final Map<String, Map<String, Map<String, String>>> styles = new HashMap<>();
     
