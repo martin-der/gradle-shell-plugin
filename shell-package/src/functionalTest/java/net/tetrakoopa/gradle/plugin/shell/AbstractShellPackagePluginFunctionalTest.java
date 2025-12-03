@@ -1,7 +1,5 @@
 package net.tetrakoopa.gradle.plugin.shell;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -21,6 +19,12 @@ public class AbstractShellPackagePluginFunctionalTest {
     protected static final File buildsDir = new File(projectDir, "builds");
 
 	protected File testBuildDir;
+
+	protected TestData testData;
+
+    protected static class TestData {
+        String dispenser_sh;
+    }
 
 	protected void createFile(File file, String content) throws IOException {
         try (Writer writer = new FileWriter(file)) {
@@ -62,6 +66,25 @@ public class AbstractShellPackagePluginFunctionalTest {
 	// protected String testFolderName() {
 	// 	return this.getClass().getSimpleName()+"$"+findCallingTestFunctionName();
 	// }
+
+	protected boolean grepVariableInDispenser(String variable_name_suffix, int value) throws IOException {
+        return grepVariableInDispenser(variable_name_suffix, String.valueOf(value), "i");
+    }
+    protected boolean grepVariableInDispenser(String variable_name_suffix, String value) throws IOException {
+        return grepVariableInDispenser(variable_name_suffix, value, "");
+    }
+    protected boolean grepVariableInDispenser(String name_suffix, String value, String typeArg) throws IOException {
+        final String dispenser_sh = getDispenseSh();
+        System.out.println("Expect '"+"\n"+"declare -r"+typeArg+" mdu_sp_"+name_suffix+"="+value+"\n"+"'");
+        return dispenser_sh.contains("\n"+"declare -r"+typeArg+" mdu_sp_"+name_suffix+"="+value+"\n");
+    }
+
+    private String getDispenseSh() throws IOException {
+        if (testData.dispenser_sh == null) {
+            testData.dispenser_sh = explodedTextContent("dispense.sh");
+        }
+        return testData.dispenser_sh;
+    }
 
 	private File projectResource(String projectName, String resourcePath) {
 		if (projectName.contains("/")) throw new IllegalArgumentException("'projectName' cannot contains any '/'");

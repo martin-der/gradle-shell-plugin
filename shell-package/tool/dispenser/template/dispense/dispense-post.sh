@@ -186,13 +186,13 @@ execute_user_script() {
 
 if [ ${action} = 'LAUNCH' ]; then
 
-	log_debug cd "${MDU_ORIGINAL_WORK_DIR}"
-	cd "${MDU_ORIGINAL_WORK_DIR}"
+	log_debug cd "${MDU_SD_INSTALL_TEMP_DIR}"
+	cd "${MDU_SD_INSTALL_TEMP_DIR}"
 
-	source "${MDU_SD_INSTALL_TEMP_DIR}/resource/environment.sh"
+	source "${MDU_SD_INSTALL_TEMP_DIR}/resource/launcher-properties.sh"
 
 	log_debug "execute 'content/content/${mdu_sp_executable_reactor_script}'"
-	"${MDU_SD_INSTALL_TEMP_DIRx}/content/${mdu_sp_executable_reactor_script}"
+	"${MDU_SD_INSTALL_TEMP_DIR}/content/${mdu_sp_executable_reactor_script}"
 	exit $?
 fi
 

@@ -197,6 +197,13 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		private String script;
 		private String workingDirectory;
 		private Map<String, String> environment = new HashMap<>();
+
+		public void script(String script) {
+			this.script = script;
+		}
+		public void environment(Map<String, String> environment) {
+			this.environment = environment;
+		}
 	}
 
 	final MultiAction action = new MultiAction();
@@ -241,5 +248,8 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 	void launcher(Closure<Launcher> closure) { 
 		launcher = new Launcher();
 		ConfigureUtil.configure(closure, launcher); 
+		if (launcher.getScript() == null) {
+			throw new InvalidPluginConfigurationException(configurationPath("launcher"), "No script defined");
+		}
 	}
 }

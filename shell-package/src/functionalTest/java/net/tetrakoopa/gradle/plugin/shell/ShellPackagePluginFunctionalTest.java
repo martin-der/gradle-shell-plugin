@@ -8,10 +8,10 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 
 import net.tetrakoopa.gradle.plugin.common.IOUtil;
@@ -24,8 +24,9 @@ public class ShellPackagePluginFunctionalTest extends AbstractShellPackagePlugin
 
     @Before
     public void init() throws IOException {
-        testBuildDir = new File(buildsDir, name.getMethodName());
+        testBuildDir = new File(buildsDir, this.getClass().getSimpleName()+"_$_"+name.getMethodName());
         Files.createDirectories(buildsDir.toPath());
+        testData = new TestData();
     }
 
     @Test
@@ -124,7 +125,7 @@ public class ShellPackagePluginFunctionalTest extends AbstractShellPackagePlugin
     }
 
     @Test
-    public void addBannerWithModification() throws IOException {
+    public void addBannerWithSubstitutions() throws IOException {
 
 
         copyProjectDirectory("foobar-project", "script", "script");
@@ -173,4 +174,113 @@ public class ShellPackagePluginFunctionalTest extends AbstractShellPackagePlugin
 
         // assertTrue(result.getOutput().contains("Hello from plugin 'shell'"));
     }
+
+    @Test
+    public void addLauncher() throws IOException {
+
+
+        copyProjectDirectory("foobar-project", "script", "script");
+        copyProjectFile("foobar-project", "banner.txt", "banner.txt");
+        createProjectFile("settings.gradle", "");
+        createProjectFile("build.gradle",
+        """
+        plugins {
+            id('shell-package')
+        }
+            
+        shell_package {
+            name = "foobar"
+            source {
+                from ("script") {
+                    include "**/*.sh"
+                    into "bin"
+                }
+            }
+            launcher {
+                script "bin/youkikakou"
+            }
+        }
+        """);
+
+        final BuildResult result;
+        IOUtil.deleteDirectory(testBuildDir, false);
+        IOUtil.deleteDirectory(buildDir, false);
+        try {
+
+            Files.createDirectories(buildDir.toPath());
+            result = GradleRunner.create()
+                .withDebug(true)
+                .forwardOutput()
+                .withPluginClasspath()
+                .withArguments("dispenser")
+                .withProjectDir(projectDir)
+                .build();
+
+        } finally {
+            IOUtil.moveDirectory(buildDir, testBuildDir);
+        }
+
+        assertTrue("Variable 'mdu_sp_executable_reactor_script' holds correct script path", grepVariableInDispenser("executable_reactor_script","bin/youkikakou"));
+        assertTrue("Variable 'mdu_sp_executable_has_environment_properties' is 0", grepVariableInDispenser("executable_has_environment_properties",0));
+
+    }
+
+        @Test
+    public void addLauncherWithEnvironmentProperties() throws IOException {
+
+
+        copyProjectDirectory("foobar-project", "script", "script");
+        copyProjectFile("foobar-project", "banner.txt", "banner.txt");
+        createProjectFile("settings.gradle", "");
+        createProjectFile("build.gradle",
+        """
+        plugins {
+            id('shell-package')
+        }
+            
+        shell_package {
+            name = "foobar"
+            source {
+                from ("script") {
+                    include "**/*.sh"
+                    into "bin"
+                }
+            }
+            launcher {
+                script "bin/youkikakou"
+                environment [
+                    tiger: 'Hobbes',
+                    dog: 'Snoopy',
+                ]
+            }
+        }
+        """);
+
+        final BuildResult result;
+        IOUtil.deleteDirectory(testBuildDir, false);
+        IOUtil.deleteDirectory(buildDir, false);
+        try {
+
+            Files.createDirectories(buildDir.toPath());
+            result = GradleRunner.create()
+                .withDebug(true)
+                .forwardOutput()
+                .withPluginClasspath()
+                .withArguments("dispenser")
+                .withProjectDir(projectDir)
+                .build();
+
+        } finally {
+            IOUtil.moveDirectory(buildDir, testBuildDir);
+        }
+
+        assertTrue("Variable 'mdu_sp_executable_reactor_script' holds correct script path", grepVariableInDispenser("executable_reactor_script","bin/youkikakou"));
+        assertTrue("Variable 'mdu_sp_executable_has_environment_properties' is 0", grepVariableInDispenser("executable_has_environment_properties",1));
+        assertEquals(explodedTextContent("resource/launcher-properties.sh"), """
+                tiger=Hobbes
+                dog=Snoopy
+                """);
+
+    }
+
 }

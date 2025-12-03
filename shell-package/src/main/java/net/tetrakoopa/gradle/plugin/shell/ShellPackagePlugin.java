@@ -1,10 +1,13 @@
 package net.tetrakoopa.gradle.plugin.shell;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 import net.tetrakoopa.gradle.plugin.exception.ShellPackagePluginException;
 import net.tetrakoopa.gradle.plugin.shell.ShellPluginExtension.MultiActionModeStrategy;
 import net.tetrakoopa.gradle.plugin.task.DispenserTask;
+import net.tetrakoopa.gradle.plugin.task.ShellPropertiesTask;
 import net.tetrakoopa.gradle.plugin.task.TextFileSourceTask;
 
 import org.gradle.api.Plugin;
@@ -27,6 +30,8 @@ public class ShellPackagePlugin implements Plugin<Project> {
     public static final String EXPLODED_RESOURCE_PATH = "resource";
 
     private static final String RESOURCE_PATH_BANNER = ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+EXPLODED_RESOURCE_PATH+File.separator+"banner.txt";
+    private static final String RESOURCE_PATH_LAUCNCHER_PROPERTIES = ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+EXPLODED_RESOURCE_PATH+File.separator+"launcher-properties.sh";
+    
 
     public static final String defaultName = "unknown";
 
@@ -84,6 +89,8 @@ public class ShellPackagePlugin implements Plugin<Project> {
             dispenser.getProjectLabel().set(project.provider(() -> extension.getName().getOrElse(defaultName)));
             dispenser.getProjectVersion().set(project.provider(() -> extension.getVersion().getOrNull()));
             dispenser.getBanner().set(project.provider(() -> extension.getBanner() == null ? null : project.getLayout().getBuildDirectory().file(RESOURCE_PATH_BANNER).get()));
+            dispenser.getLauncherReactorScript().set(project.provider(() -> extension.getLauncher() == null ? null : extension.getLauncher().getScript()));
+            dispenser.getLauncherReactorEnvironment().set(project.provider(() -> extension.getLauncher() == null ? false : !extension.getLauncher().getEnvironment().isEmpty()));
         });
         final DispenserTask dispenserTask = internal.task.dispenserTask = dispenserTaskProvider.get();
 
@@ -126,6 +133,27 @@ public class ShellPackagePlugin implements Plugin<Project> {
                 internal.task.prepareBanner = prepareSourcesTaskProvider.get();
                 internal.task.prepareBanner.setGroup(DISPENSER_TASK_GROUP);
                 internal.task.dispenserTask.dependsOn(internal.task.prepareBanner);
+            }
+        }
+        {
+            if (extension.getLauncher() != null) {
+                final var launcher = extension.getLauncher();
+                if (!launcher.getEnvironment().isEmpty()) {
+                    final TaskProvider<ShellPropertiesTask> prepareLauncherPropertiesTaskProvider = project.getTasks().register("launcherProperties", ShellPropertiesTask.class, properties -> {
+                        properties.getEnvironment().set(project.provider(() -> {
+                            final Map<String, Object> replacedMap = new HashMap<String, Object>();
+                            extension.getLauncher().getEnvironment().forEach((key, value) -> {
+                                replacedMap.put(key, replaceValues(value, internal));
+                            });
+                            return replacedMap;
+                        }).get());
+                        properties.getOutputFile().set(project.provider(() -> project.getLayout().getBuildDirectory().file(RESOURCE_PATH_LAUCNCHER_PROPERTIES)).get());
+
+                    });
+                    internal.task.prepareLauncherProperties = prepareLauncherPropertiesTaskProvider.get();
+                    internal.task.prepareLauncherProperties.setGroup(DISPENSER_TASK_GROUP);
+                    internal.task.dispenserTask.dependsOn(internal.task.prepareLauncherProperties);
+                }
             }
         }
 
@@ -237,7 +265,7 @@ public class ShellPackagePlugin implements Plugin<Project> {
 
     private String replaceValues(String string, Internal internal) {
         return string
-            .replace("{{CONTENT-DIRECTORY}}", "${MDU_DISPENSER_CONTENT_DIRECTORY}");
+            .replace("{{MDU-SD_CONTENT-DIRECTORY}}", "${MDU_DISPENSER_CONTENT_DIRECTORY}");
     }
     
 

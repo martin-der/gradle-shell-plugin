@@ -12,6 +12,7 @@ import org.gradle.api.file.FileCopyDetails;
 import org.gradle.api.tasks.Copy;
 
 import net.tetrakoopa.gradle.plugin.task.DispenserTask;
+import net.tetrakoopa.gradle.plugin.task.ShellPropertiesTask;
 import net.tetrakoopa.gradle.plugin.task.TextFileSourceTask;
 
 public class Internal {
@@ -32,6 +33,7 @@ public class Internal {
 	public static class BaseTask {
 		Copy prepareSources;
 		TextFileSourceTask prepareBanner;
+		ShellPropertiesTask prepareLauncherProperties;		
 		DispenserTask dispenserTask;
 	}
 

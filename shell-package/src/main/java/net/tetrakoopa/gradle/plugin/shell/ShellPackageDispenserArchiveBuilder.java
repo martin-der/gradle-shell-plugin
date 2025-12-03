@@ -15,6 +15,7 @@ import lombok.Cleanup;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.tetrakoopa.gradle.SystemUtil;
 
 @Getter @Setter
 @Accessors(fluent = true, chain = true)
@@ -46,8 +47,9 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 				write("mkdir -p '"+path.getParent()+"'\n");
 			}
 
+			final String escapedPath = shellEscapedString(path.toString());
 			if (isText(absolutePath)) {
-				write("sed 's/^X //' << 'MDU_SD_EOF' > '"+shellEscapedString(path.toString())+"' \n");
+				write("sed 's/^X //' << 'MDU_SD_EOF' > '"+escapedPath+"' \n");
 				try (Stream<String> stream = Files.lines(absolutePath)) {
 						for (String l : toIterable(stream.iterator())) {
 							write("X ");
@@ -57,10 +59,17 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 				}										
 				write("\nMDU_SD_EOF\n");
 			} else {
-				write("${MDU_SD_DECODE_BASE64} << 'MDU_SD_EOF' > '"+shellEscapedString(path.toString())+"' \n");
+				write("${MDU_SD_DECODE_BASE64} << 'MDU_SD_EOF' > '"+escapedPath+"' \n");
 				write(Base64.getEncoder().encodeToString(Files.newInputStream(absolutePath).readAllBytes()));
 				write("\nMDU_SD_EOF\n");
 			}
+			write("\n");
+			final int fileMode = SystemUtil.getPermissions(absolutePath);
+			write(String.format("""
+					chmod %03o "%s" || {
+						log_warning "Failed to set permission %03o to file '%s'"
+					}
+					""", fileMode, path, fileMode, path));
 		};
 
 

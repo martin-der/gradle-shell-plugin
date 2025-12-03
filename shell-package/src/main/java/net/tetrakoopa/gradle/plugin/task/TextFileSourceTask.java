@@ -3,16 +3,11 @@ package net.tetrakoopa.gradle.plugin.task;
 
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
-import org.gradle.api.file.RegularFile;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
-
-import net.tetrakoopa.gradle.plugin.shell.ShellPackagePlugin;
-
-import org.gradle.api.provider.Provider;
 
 import java.io.*;
 import java.util.function.Function;

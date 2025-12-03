@@ -54,6 +54,12 @@ public abstract class DispenserTask extends DefaultTask {
 	@InputFiles
 	public abstract ConfigurableFileCollection getSources();
 
+    @Input @Optional
+	public abstract Property<String> getLauncherReactorScript();
+
+    @Input @Optional
+	public abstract Property<Boolean> getLauncherReactorEnvironment();
+
     @InputFile @Optional
 	public abstract RegularFileProperty getUserScript();
 
@@ -113,6 +119,8 @@ public abstract class DispenserTask extends DefaultTask {
                         .packageVersion(getProjectVersion().getOrNull())
                         .actionModeStrategy(getMultiActionModeStrategy().get())
                         .executeUserScript(getUserScript().isPresent())
+                        .launcherScript(getLauncherReactorScript().getOrNull())
+                        .launcherScriptHasEnvironmentProperties(getLauncherReactorEnvironment().getOrElse(false))
                         .showBanner(getBanner().isPresent());
                     builder.build();
                 } catch (IOException e) {
