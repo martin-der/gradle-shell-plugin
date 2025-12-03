@@ -5,7 +5,7 @@ IFS=$'\n\t'
 
 source "${MDU_SD_INSTALL_TEMP_DIR}/util/log.sh"
 
-MDU_LOG_LEVEL=debug
+[ "x${MDU_LOG_LEVEL:-}" = "x" ] && MDU_LOG_LEVEL=info
 
 log_debug "Working in '$(pwd)'"
 
