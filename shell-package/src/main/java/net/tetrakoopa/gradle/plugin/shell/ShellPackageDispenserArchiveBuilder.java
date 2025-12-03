@@ -43,13 +43,15 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 			write("# File "+path.toString()+"\n");
 			write("#\n");
 
+			final String absoluteEscapedPath = "${MDU_SD_INSTALL_TEMP_DIR}/"+shellEscapedString(path.toString());
+
 			if (path.getNameCount()>1) {
-				write("mkdir -p '"+path.getParent()+"'\n");
+				final String escapedPath = shellEscapedString(path.getParent().toString());
+				write("mkdir -p \"${MDU_SD_INSTALL_TEMP_DIR}/"+escapedPath+"\"\n");
 			}
 
-			final String escapedPath = shellEscapedString(path.toString());
 			if (isText(absolutePath)) {
-				write("sed 's/^X //' << 'MDU_SD_EOF' > '"+escapedPath+"' \n");
+				write("sed 's/^X //' << 'MDU_SD_EOF' > \""+absoluteEscapedPath+"\"\n");
 				try (Stream<String> stream = Files.lines(absolutePath)) {
 						for (String l : toIterable(stream.iterator())) {
 							write("X ");
@@ -59,7 +61,7 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 				}										
 				write("\nMDU_SD_EOF\n");
 			} else {
-				write("${MDU_SD_DECODE_BASE64} << 'MDU_SD_EOF' > '"+escapedPath+"' \n");
+				write("${MDU_SD_DECODE_BASE64} << 'MDU_SD_EOF' > \""+absoluteEscapedPath+"\"\n");
 				write(Base64.getEncoder().encodeToString(Files.newInputStream(absolutePath).readAllBytes()));
 				write("\nMDU_SD_EOF\n");
 			}
@@ -69,7 +71,7 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 					chmod %03o "%s" || {
 						log_warning "Failed to set permission %03o to file '%s'"
 					}
-					""", fileMode, path, fileMode, path));
+					""", fileMode, absoluteEscapedPath, fileMode, absoluteEscapedPath));
 		};
 
 

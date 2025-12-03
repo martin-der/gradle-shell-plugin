@@ -2,11 +2,9 @@ package net.tetrakoopa.gradle.plugin.task;
 
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
-import org.gradle.api.file.CopySpec;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.MapProperty;
-import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.TaskAction;
 
 import net.tetrakoopa.gradle.GenerationHelper;
@@ -66,7 +64,6 @@ public abstract class ShellPropertiesTask extends DefaultTask {
 		final var finalEnvironment = getEnvironment().get();
 
 		try(final var generator = new GenerationHelper.PropertiesGenerator(new FileWriter(finalOutput))) {
-			// generator.renamer(name -> "mdu_sp_"+name);
             for (Map.Entry<String, Object> entry : finalEnvironment.entrySet()) {
 				generator.append(entry.getKey(), entry.getValue());
 			}

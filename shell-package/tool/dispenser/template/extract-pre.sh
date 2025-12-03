@@ -11,5 +11,4 @@ trap "mdu_install_clean_all" EXIT
 
 MDU_SD_DECODE_BASE64="base64 --decode"
 
-# echo "m - Working in '$MDU_INSTALL_TMP_DIR'"
-cd "$MDU_SD_INSTALL_TEMP_DIR" || exit 1
+

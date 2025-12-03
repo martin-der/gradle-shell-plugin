@@ -187,7 +187,6 @@ execute_user_script() {
 if [ ${action} = 'LAUNCH' ]; then
 
 	log_debug cd "${MDU_SD_INSTALL_TEMP_DIR}"
-	cd "${MDU_SD_INSTALL_TEMP_DIR}"
 
 	source "${MDU_SD_INSTALL_TEMP_DIR}/resource/launcher-properties.sh"
 
@@ -206,7 +205,6 @@ log_info "Installation of '${mdu_sp_package_label}' (${mdu_sp_package_version})"
 
 show_readme
 
-# exit 99
 
 install_with_terminal() {
 	local KNOWN_TERMS="xterm konsole gnome-terminal rxvt dtterm eterm Eterm xfce4-terminal lxterminal kvt aterm terminology"

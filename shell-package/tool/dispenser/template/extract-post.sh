@@ -1,6 +1,6 @@
 
 
-chmod +x dispense.sh || exit 1
+chmod +x "${MDU_SD_INSTALL_TEMP_DIR}/dispense.sh" || exit 1
 
 
 title_short="Installation of $MDU_INSTALL_APPLICATION_LABEL"
@@ -11,7 +11,7 @@ export MDU_DISPENSER_CONTENT_DIRECTORY="${MDU_DISPENSER_DIRECTORY}/content"
 export MDU_ORIGINAL_WORK_DIR
 
 
-./dispense.sh "${@}"
+"${MDU_SD_INSTALL_TEMP_DIR}/dispense.sh" "${@}"
 
 
 exit 0
