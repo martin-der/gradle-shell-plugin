@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 mdu_install_clean_all() {
-	: # rm -rf "$MDU_INSTALL_TMP_DIR"
+	rm -rf "$MDU_INSTALL_TMP_DIR"
 }
 
 MDU_SD_ORIGINAL_WORK_DIR="$(pwd)"
