@@ -139,7 +139,7 @@ install_content() {
 		target="${install_dir}/${target_name}"
 		log_debug "Copy '${f}' => '${target}'"
    		cp -r "${f}" "${target}" || return 1
-	done <<< "$( find ./content -mindepth 1 -maxdepth 1 )"
+	done <<< "$( find "${MDU_SD_INSTALL_TEMP_DIR}/content" -mindepth 1 -maxdepth 1 )"
 }
 
 show_readme() {
