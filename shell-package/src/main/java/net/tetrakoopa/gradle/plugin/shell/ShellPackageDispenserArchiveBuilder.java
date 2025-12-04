@@ -35,6 +35,12 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 
 		writeClassPathResource("/template/extract-pre.sh");
 
+		write("\n\n");
+
+		writeClassPathResource("/inlined/base64.sh");
+
+		write("\n\n");		
+
 		
 		final Path sourceDirectoryPath = sourceDirectory.toPath();
 		for (Path absolutePath : toIterable(Files.walk(sourceDirectoryPath).filter(Files::isRegularFile).iterator())) {
@@ -43,11 +49,13 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 			write("# File "+path.toString()+"\n");
 			write("#\n");
 
+			write("\n");
+
 			final String absoluteEscapedPath = "${MDU_SD_INSTALL_TEMP_DIR}/"+shellEscapedString(path.toString());
 
 			if (path.getNameCount()>1) {
-				final String escapedPath = shellEscapedString(path.getParent().toString());
-				write("mkdir -p \"${MDU_SD_INSTALL_TEMP_DIR}/"+escapedPath+"\"\n");
+				final String escapedParentPath = shellEscapedString(path.getParent().toString());
+				write("mkdir -p \"${MDU_SD_INSTALL_TEMP_DIR}/"+escapedParentPath+"\"\n");
 			}
 
 			if (isText(absolutePath)) {

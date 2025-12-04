@@ -1,4 +1,3 @@
-#!/bin/sh
 
 mdu_decode_base64() {
     __mdu_b64_b64="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
@@ -80,6 +79,9 @@ __mdu_b64_get_char_value() {
         8) return 60;; 9) return 61;; +) return 62;; /) return 63;;
         *) return 0;;  # For '=' or any invalid character
     esac
+
+    unset __mdu_b64_group __mdu_b64_pad_count __mdu_b64_char1 __mdu_b64_char2 __mdu_b64_char3 __mdu_b64_char4
+    unset __mdu_b64_v1 __mdu_b64_v2 __mdu_b64_v3 __mdu_b64_v4 __mdu_b64_o1 __mdu_b64_o2 __mdu_b64_o3
 }
     
 
@@ -120,7 +122,7 @@ __mdu_b64_process_group() {
             ;;
     esac
     
-    unset __mdu_b64_group __mdu_b64_pad_count __mdu_b64_char1 __mdu_b64_char2 __mdu_b64_char3 __mdu_b64_char4
-    unset __mdu_b64_v1 __mdu_b64_v2 __mdu_b64_v3 __mdu_b64_v4 __mdu_b64_o1 __mdu_b64_o2 __mdu_b64_o3
+    # unset __mdu_b64_group __mdu_b64_pad_count __mdu_b64_char1 __mdu_b64_char2 __mdu_b64_char3 __mdu_b64_char4
+    # unset __mdu_b64_v1 __mdu_b64_v2 __mdu_b64_v3 __mdu_b64_v4 __mdu_b64_o1 __mdu_b64_o2 __mdu_b64_o3
 }
 
