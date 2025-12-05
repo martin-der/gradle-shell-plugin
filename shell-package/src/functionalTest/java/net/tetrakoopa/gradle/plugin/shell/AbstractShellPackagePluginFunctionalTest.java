@@ -9,21 +9,33 @@ import java.io.InputStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 
+import org.gradle.testkit.runner.BuildResult;
+import org.gradle.testkit.runner.GradleRunner;
+
 import net.tetrakoopa.gradle.plugin.common.IOUtil;
 
 
 public class AbstractShellPackagePluginFunctionalTest {
 
-	protected static final File projectDir = new File("build/functionalTest");
-    protected static final File buildDir = new File("build/functionalTest/build");
-    protected static final File buildsDir = new File(projectDir, "builds");
+	protected static final File projectsDir = new File("build/functionalTest/tests");
 
-	protected File testBuildDir;
+	protected File projectDir;
+    protected File buildDir;
 
 	protected TestData testData;
 
     protected static class TestData {
         String dispenser_sh;
+    }
+
+    protected BuildResult buildWithArguments(String ... arguments) {
+        return GradleRunner.create()
+            .withDebug(true)
+            .forwardOutput()
+            .withPluginClasspath()
+            .withArguments(arguments)
+            .withProjectDir(projectDir)
+            .build();
     }
 
 	protected void createFile(File file, String content) throws IOException {
@@ -44,7 +56,7 @@ public class AbstractShellPackagePluginFunctionalTest {
 	}
 
 	protected File explodedFile(String filePath) {
-       return new File(testBuildDir, "shell/dispenser/exploded/"+filePath);
+       return new File(buildDir, "shell/dispenser/exploded/"+filePath);
     }
 	protected boolean explodedFileExists(String filePath) {
        return explodedFile(filePath).exists();
