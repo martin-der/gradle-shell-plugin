@@ -146,7 +146,7 @@ show_readme() {
 	if [ ${mdu_sp_show_readme} -eq 0 ]; then
 		return 0
 	fi
-	local file="${MDU_SD_INSTALL_TEMP_DIR}/resource/README.md"
+	local file="${MDU_SD_INSTALL_TEMP_DIR}/resource/readme.txt"
 	while true; do
 		read -p "Do you want to view the 'README'? [Yn] " yn
 		case $yn in
@@ -175,7 +175,7 @@ execute_user_script() {
 	sh "${mdu_sp_user_script}"
 	local result=$?
 	if [ $result -ne 0 ] ; then
-		log_error "User script exited with ${result}"
+		log_error "Failed to execute post-installation script. It exited with ${result}"
 	fi
 	return $?
 }
@@ -268,11 +268,13 @@ log_info "Install in : '$install_location'"
 
 install_content "$install_location" || {
 	log_error "Failed to install scripts" >&2
-	read dummy
+	# read dummy
 	exit 1
 }
 
 
-execute_user_script || exit 2
+execute_user_script || {
+	exit 2
+}
 
 exit 0

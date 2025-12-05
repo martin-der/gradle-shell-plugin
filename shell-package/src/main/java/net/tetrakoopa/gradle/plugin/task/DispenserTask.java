@@ -48,6 +48,9 @@ public abstract class DispenserTask extends DefaultTask {
     @InputFile @Optional
 	public abstract RegularFileProperty getBanner();
 
+    @InputFile @Optional
+	public abstract RegularFileProperty getReadme();
+
     @Input
 	public abstract Property<ShellPluginExtension.MultiActionModeStrategy> getMultiActionModeStrategy();
 
@@ -61,7 +64,7 @@ public abstract class DispenserTask extends DefaultTask {
 	public abstract Property<Boolean> getLauncherReactorEnvironment();
 
     @InputFile @Optional
-	public abstract RegularFileProperty getUserScript();
+	public abstract RegularFileProperty getPostInstallScript();
 
 	@OutputFile
 	public abstract RegularFileProperty getExecutorTarget();
@@ -118,10 +121,11 @@ public abstract class DispenserTask extends DefaultTask {
                         .label(getProjectLabel().get())
                         .packageVersion(getProjectVersion().getOrNull())
                         .actionModeStrategy(getMultiActionModeStrategy().get())
-                        .executeUserScript(getUserScript().isPresent())
+                        .showBanner(getBanner().isPresent())
+                        .showReadme(getReadme().isPresent())
+                        .executeUserScript(getPostInstallScript().isPresent())
                         .launcherScript(getLauncherReactorScript().getOrNull())
-                        .launcherScriptHasEnvironmentProperties(getLauncherReactorEnvironment().getOrElse(false))
-                        .showBanner(getBanner().isPresent());
+                        .launcherScriptHasEnvironmentProperties(getLauncherReactorEnvironment().getOrElse(false));
                     builder.build();
                 } catch (IOException e) {
                     throw new RuntimeException("Failed to create dispense script : "+e.getMessage(), e);

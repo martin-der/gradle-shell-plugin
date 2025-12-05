@@ -186,6 +186,10 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		// void makeExecutable(boolean executable) { this.executable = executable }
 
 		void userScript(Closure<UserScript> closure) { ConfigureUtil.configure(closure, userScript); }
+		void readme(String location) { 
+			readme = new ModifiablePathOrContentLocation.Default();
+			readme.setLocation(location);
+		}
 		void readme(Closure<PathOrContentLocation> closure) { 
 			readme = new ModifiablePathOrContentLocation.Default();
 			((ModifiablePathOrContentLocation.Default)readme).__configure(closure, "installer readme"); 

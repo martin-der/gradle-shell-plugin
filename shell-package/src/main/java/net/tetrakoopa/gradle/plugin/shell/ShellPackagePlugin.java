@@ -12,7 +12,6 @@ import net.tetrakoopa.gradle.plugin.task.TextFileSourceTask;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.file.CopySpec;
 import org.gradle.api.tasks.Copy;
 import org.gradle.api.tasks.TaskProvider;
 
@@ -31,9 +30,14 @@ public class ShellPackagePlugin implements Plugin<Project> {
 
     private static final String RESOURCE_PATH_BANNER = ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+EXPLODED_RESOURCE_PATH+File.separator+"banner.txt";
     private static final String RESOURCE_PATH_LAUCNCHER_PROPERTIES = ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+EXPLODED_RESOURCE_PATH+File.separator+"launcher-properties.sh";
+    private static final String RESOURCE_PATH_README = ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+EXPLODED_RESOURCE_PATH+File.separator+"readme.txt";
     
 
     public static final String defaultName = "unknown";
+
+
+    private static final UnaryOperator<String> identityFunction = UnaryOperator.identity();
+
 
 
     @Override
@@ -89,6 +93,7 @@ public class ShellPackagePlugin implements Plugin<Project> {
             dispenser.getProjectLabel().set(project.provider(() -> extension.getName().getOrElse(defaultName)));
             dispenser.getProjectVersion().set(project.provider(() -> extension.getVersion().getOrNull()));
             dispenser.getBanner().set(project.provider(() -> extension.getBanner() == null ? null : project.getLayout().getBuildDirectory().file(RESOURCE_PATH_BANNER).get()));
+            dispenser.getReadme().set(project.provider(() -> extension.getInstaller().readme == null ? null : project.getLayout().getBuildDirectory().file(RESOURCE_PATH_README).get()));
             dispenser.getLauncherReactorScript().set(project.provider(() -> extension.getLauncher() == null ? null : extension.getLauncher().getScript()));
             dispenser.getLauncherReactorEnvironment().set(project.provider(() -> extension.getLauncher() == null ? false : !extension.getLauncher().getEnvironment().isEmpty()));
         });
@@ -120,7 +125,6 @@ public class ShellPackagePlugin implements Plugin<Project> {
 
         {
             if (extension.getBanner() != null) {
-                final UnaryOperator<String> identityFunction = UnaryOperator.identity();
                 final TaskProvider<TextFileSourceTask> prepareSourcesTaskProvider = project.getTasks().register("banner", TextFileSourceTask.class, banner -> {
                     banner.modify(project.provider(() -> {
                         final var modify = extension.getBanner().getModify();
@@ -133,6 +137,24 @@ public class ShellPackagePlugin implements Plugin<Project> {
                 internal.task.prepareBanner = prepareSourcesTaskProvider.get();
                 internal.task.prepareBanner.setGroup(DISPENSER_TASK_GROUP);
                 internal.task.dispenserTask.dependsOn(internal.task.prepareBanner);
+            }
+        }
+        {
+            if (extension.getInstaller().readme != null) {
+                // final var readme = extension.getInstaller().readme;
+                // final UnaryOperator<String> identityFunction = UnaryOperator.identity();
+                final TaskProvider<TextFileSourceTask> prepareSourcesTaskProvider = project.getTasks().register("readme", TextFileSourceTask.class, readme -> {
+                    readme.modify(project.provider(() -> {
+                        final var modify = extension.getInstaller().readme.getModify();
+                        return modify == null ? identityFunction : modify;
+                    }).get());
+                    readme.getSourceFile().set(project.provider(() -> extension.getInstaller().readme.resolve(project)).get());
+                    readme.getDestinationFile().set(project.provider(() -> project.getLayout().getBuildDirectory().file(RESOURCE_PATH_README)).get());
+
+                });
+                final var task = prepareSourcesTaskProvider.get();
+                task.setGroup(DISPENSER_TASK_GROUP);
+                internal.task.dispenserTask.dependsOn(task);
             }
         }
         {
@@ -158,28 +180,28 @@ public class ShellPackagePlugin implements Plugin<Project> {
         }
 
 
-        if (extension.installer.readme != null) {
-            final var content = extension.installer.readme;
-            final Copy copyReadMeTask;
-            {
-                final TaskProvider<Copy> taskProvider = project.getTasks().register("copyReadMe", Copy.class);
-                final var modify = content.getModify();
-                taskProvider.configure(copy -> {
-                    final CopySpec spec = project.copySpec();
-                    spec.from(extension.installer.readme.resolve(project));
-                    spec.rename((o) -> "README.md");
-                    copy.with(spec);
-                    copy.into(internal.resourceDir);
-                    if (modify != null) {
-                        copy.filter(modify);
-                    }
-                });
-                copyReadMeTask = taskProvider.get();
-            }
-            copyReadMeTask.setGroup(DISPENSER_TASK_GROUP);
-            copyReadMeTask.getOutputs().upToDateWhen(element -> false);
-            internal.task.dispenserTask.dependsOn(copyReadMeTask);
-        }
+        // if (extension.installer.readme != null) {
+        //     final var content = extension.installer.readme;
+        //     final Copy copyReadMeTask;
+        //     {
+        //         final TaskProvider<Copy> taskProvider = project.getTasks().register("copyReadMe", Copy.class);
+        //         final var modify = content.getModify();
+        //         taskProvider.configure(copy -> {
+        //             final CopySpec spec = project.copySpec();
+        //             spec.from(extension.installer.readme.resolve(project));
+        //             spec.rename((o) -> "README.md");
+        //             copy.with(spec);
+        //             copy.into(internal.resourceDir);
+        //             if (modify != null) {
+        //                 copy.filter(modify);
+        //             }
+        //         });
+        //         copyReadMeTask = taskProvider.get();
+        //     }
+        //     copyReadMeTask.setGroup(DISPENSER_TASK_GROUP);
+        //     copyReadMeTask.getOutputs().upToDateWhen(element -> false);
+        //     internal.task.dispenserTask.dependsOn(copyReadMeTask);
+        // }
 
         // if (extension.banner != null) {
         //     final ModifiablePathOrContentLocation content = extension.banner;
