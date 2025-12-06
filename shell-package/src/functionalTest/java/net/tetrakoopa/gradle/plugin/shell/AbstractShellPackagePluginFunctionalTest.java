@@ -8,9 +8,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 
 import net.tetrakoopa.gradle.plugin.common.IOUtil;
 
@@ -26,6 +30,17 @@ public class AbstractShellPackagePluginFunctionalTest {
 
     protected static class TestData {
         String dispenser_sh;
+    }
+
+    @Rule
+    public TestName name = new TestName();
+
+    @Before
+    public void init() throws IOException {
+        projectDir = new File(projectsDir, this.getClass().getSimpleName()+"_$_"+name.getMethodName());
+        buildDir = new File(projectDir, "build");
+        Files.createDirectories(projectsDir.toPath());
+        testData = new TestData();
     }
 
     protected BuildResult buildWithArguments(String ... arguments) {
@@ -87,7 +102,6 @@ public class AbstractShellPackagePluginFunctionalTest {
     }
     protected boolean grepVariableInDispenser(String name_suffix, String value, String typeArg) throws IOException {
         final String dispenser_sh = getDispenseSh();
-        System.out.println("Expect '"+"\n"+"declare -r"+typeArg+" mdu_sp_"+name_suffix+"="+value+"\n"+"'");
         return dispenser_sh.contains("\n"+"declare -r"+typeArg+" mdu_sp_"+name_suffix+"="+value+"\n");
     }
 

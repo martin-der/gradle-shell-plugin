@@ -1,31 +1,14 @@
 package net.tetrakoopa.gradle.plugin.shell;
 
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 
 
 
 public class ShellPackagePluginFunctionalTest extends AbstractShellPackagePluginFunctionalTest {
-
-    @Rule
-    public TestName name = new TestName();
-
-    @Before
-    public void init() throws IOException {
-        projectDir = new File(projectsDir, this.getClass().getSimpleName()+"_$_"+name.getMethodName());
-        buildDir = new File(projectDir, "build");
-        Files.createDirectories(projectsDir.toPath());
-        testData = new TestData();
-    }
 
     @Test
     public void simplePackage() throws IOException {
