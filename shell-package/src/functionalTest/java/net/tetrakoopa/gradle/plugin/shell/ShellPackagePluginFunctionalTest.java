@@ -11,7 +11,38 @@ import java.io.IOException;
 public class ShellPackagePluginFunctionalTest extends AbstractShellPackagePluginFunctionalTest {
 
     @Test
-    public void simplePackage() throws IOException {
+    public void simplestPackage() throws IOException {
+
+
+        copyProjectDirectory("foobar-project", "script", "script");
+
+        createProjectFile("settings.gradle", "");
+        createProjectFile("build.gradle",
+        """
+        plugins {
+            id('shell-package')
+        }
+            
+        shell_package {
+            source {
+                from ("script") {
+                    include "**/*.sh"
+                    into "bin"
+                }
+            }
+        }
+        """);
+
+        buildWithArguments("dispenser");
+
+
+        assertTrue("Variable 'mdu_sp_package_name' holds correct package name", grepVariableInDispenser("package_name","ShellPackagePluginFunctionalTest_$_simplestPackage"));
+        assertTrue("Variable 'mdu_sp_package_label' holds correct package label", grepVariableInDispenser("package_label","ShellPackagePluginFunctionalTest_$_simplestPackage"));
+        assertEquals("There is no 'resource/banner.txt'", false, explodedFileExists("resource/banner.txt"));
+    }
+
+    @Test
+    public void simplePackageWithNameAndLabel() throws IOException {
 
 
         copyProjectDirectory("foobar-project", "script", "script");
@@ -25,6 +56,7 @@ public class ShellPackagePluginFunctionalTest extends AbstractShellPackagePlugin
             
         shell_package {
             name = "foobar"
+            label = "Foo Bar Frenzy"
             source {
                 from ("script") {
                     include "**/*.sh"
@@ -37,8 +69,9 @@ public class ShellPackagePluginFunctionalTest extends AbstractShellPackagePlugin
         buildWithArguments("dispenser");
 
 
+        assertTrue("Variable 'mdu_sp_package_name' holds correct package name", grepVariableInDispenser("package_name","foobar"));
+        assertTrue("Variable 'mdu_sp_package_label' holds correct package label", grepVariableInDispenser("package_label","Foo Bar Frenzy"));
         assertEquals("There is no 'resource/banner.txt'", false, explodedFileExists("resource/banner.txt"));
-        // assertTrue(result.getOutput().contains("Hello from plugin 'shell'"));
     }
 
     @Test
@@ -72,9 +105,8 @@ public class ShellPackagePluginFunctionalTest extends AbstractShellPackagePlugin
         buildWithArguments("dispenser");
 
 
+        assertTrue("Variable 'mdu_sp_package_name' holds correct package name", grepVariableInDispenser("package_name","foobar"));
         assertEquals(explodedTextContent("resource/banner.txt"), "Hello, it's me the {{something}} banner.\n");
-
-        // assertTrue(result.getOutput().contains("Hello from plugin 'shell'"));
     }
 
     @Test
@@ -110,8 +142,6 @@ public class ShellPackagePluginFunctionalTest extends AbstractShellPackagePlugin
 
 
         assertEquals(explodedTextContent("resource/banner.txt"), "Hello, it's me the nice banner.\n");
-
-        // assertTrue(result.getOutput().contains("Hello from plugin 'shell'"));
     }
 
     @Test

@@ -89,6 +89,7 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
     public ShellPluginExtension(ObjectFactory objects, Project project) {
 		this.project = project;
         this.name = objects.property(String.class);
+		this.label = objects.property(String.class);
 		this.distributionName = objects.property(String.class);
 		this.version = objects.property(String.class);
         this.source = objects.property(CopySpec.class);
@@ -100,6 +101,7 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 
     private final Property<String> name;
 	Property<CopySpec> source;
+    private final Property<String> label;
 	private final Property<String> distributionName;
 	private final Property<String> version;
 

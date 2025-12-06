@@ -12,6 +12,7 @@ import net.tetrakoopa.gradle.plugin.task.TextFileSourceTask;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Copy;
 import org.gradle.api.tasks.TaskProvider;
 
@@ -32,8 +33,6 @@ public class ShellPackagePlugin implements Plugin<Project> {
     private static final String RESOURCE_PATH_LAUCNCHER_PROPERTIES = ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+EXPLODED_RESOURCE_PATH+File.separator+"launcher-properties.sh";
     private static final String RESOURCE_PATH_README = ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+EXPLODED_RESOURCE_PATH+File.separator+"readme.txt";
     
-
-    public static final String defaultName = "unknown";
 
 
     private static final UnaryOperator<String> identityFunction = UnaryOperator.identity();
@@ -88,9 +87,10 @@ public class ShellPackagePlugin implements Plugin<Project> {
         final TaskProvider<DispenserTask> dispenserTaskProvider = project.getTasks().register("dispenser", DispenserTask.class, dispenser -> {
             // dispenser.getSources().from(project.provider(() -> extension.getSource().get()).get());
             // dispenser.target(new File(contentDir, "dispenser.sh"));
+            final Provider<String> projectNameProvider = project.provider(() -> extension.getName().orElse(project.provider(() -> project.getName())).get());
             dispenser.getMultiActionModeStrategy().set(project.provider(() -> extension.getAction().getMode()));
-            dispenser.getProjectName().set(project.provider(() -> extension.getName().getOrElse(defaultName)));
-            dispenser.getProjectLabel().set(project.provider(() -> extension.getName().getOrElse(defaultName)));
+            dispenser.getProjectName().set(projectNameProvider);
+            dispenser.getProjectLabel().set(project.provider(() -> extension.getLabel().orElse(projectNameProvider).get()));
             dispenser.getProjectVersion().set(project.provider(() -> extension.getVersion().getOrNull()));
             dispenser.getBanner().set(project.provider(() -> extension.getBanner() == null ? null : project.getLayout().getBuildDirectory().file(RESOURCE_PATH_BANNER).get()));
             dispenser.getReadme().set(project.provider(() -> extension.getInstaller().readme == null ? null : project.getLayout().getBuildDirectory().file(RESOURCE_PATH_README).get()));
