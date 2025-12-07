@@ -21,7 +21,7 @@ import net.tetrakoopa.gradle.plugin.common.IOUtil;
 
 public class AbstractShellPackagePluginFunctionalTest {
 
-	protected static final File projectsDir = new File("build/functionalTest/tests");
+	protected static final File projectsDir = new File("build/functionalTest");
 
 	protected File projectDir;
     protected File buildDir;
