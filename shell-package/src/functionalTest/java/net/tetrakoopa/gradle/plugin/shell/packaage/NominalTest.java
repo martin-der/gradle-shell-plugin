@@ -39,6 +39,8 @@ public class NominalTest extends AbstractShellPackagePluginFunctionalTest {
         buildWithArguments("dispenser");
 
 
+        // assertEquals("Package file name is correct", dispenserFile("NominalTest---simplestPackage.sh"), "This is me\n");
+        assertTrue("Dispenser file has correct name", dispenserFile("NominalTest---simplestPackage.sh").exists());
         assertTrue("Variable 'mdu_sp_package_name' holds correct package name", grepVariableInDispenser("package_name","NominalTest---simplestPackage"));
         assertTrue("Variable 'mdu_sp_package_label' holds correct package label", grepVariableInDispenser("package_label","NominalTest---simplestPackage"));
         assertEquals("There is no 'resource/banner.txt'", false, explodedFileExists("resource/banner.txt"));
@@ -72,6 +74,7 @@ public class NominalTest extends AbstractShellPackagePluginFunctionalTest {
         buildWithArguments("dispenser");
 
 
+        assertTrue("Dispenser file has correct name", dispenserFile("foobar.sh").exists());
         assertTrue("Variable 'mdu_sp_package_name' holds correct package name", grepVariableInDispenser("package_name","foobar"));
         assertTrue("Variable 'mdu_sp_package_label' holds correct package label", grepVariableInDispenser("package_label","Foo Bar Frenzy"));
         assertEquals("There is no 'resource/banner.txt'", false, explodedFileExists("resource/banner.txt"));
@@ -105,6 +108,7 @@ public class NominalTest extends AbstractShellPackagePluginFunctionalTest {
         buildWithArguments("dispenser");
 
 
+        assertTrue("Dispenser file has correct name", dispenserFile("foobar-1.2.3-buggy-prealpha.sh").exists());
         assertTrue("Variable 'mdu_sp_package_name' holds correct package name", grepVariableInDispenser("package_name","foobar"));
         assertTrue("Variable 'mdu_sp_package_label' holds correct package label", grepVariableInDispenser("package_label","foobar"));
         assertTrue("Variable 'mdu_sp_package_version' holds correct package version", grepVariableInDispenser("package_version","1.2.3-buggy-prealpha"));

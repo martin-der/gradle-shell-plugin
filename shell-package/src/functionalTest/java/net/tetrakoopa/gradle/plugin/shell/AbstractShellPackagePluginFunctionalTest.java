@@ -85,6 +85,7 @@ public class AbstractShellPackagePluginFunctionalTest {
 		IOUtil.copyFile(projectResource(projectName, source), new File(projectDir, target));  
 	}
 
+
 	protected File explodedFile(String filePath) {
        return new File(buildDir, "shell/dispenser/exploded/"+filePath);
     }
@@ -99,6 +100,19 @@ public class AbstractShellPackagePluginFunctionalTest {
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
+
+    protected File dispenserFile(String fileName) {
+       return new File(buildDir, "shell/dispenser/"+fileName);
+    }
+	protected InputStream dispenserFileStream(String fileName) throws FileNotFoundException {
+       return new FileInputStream(dispenserFile(fileName));
+    }
+	protected String dispenserTextContent(String fileName) throws IOException {
+        try (InputStream stream = dispenserFileStream(fileName)) {
+            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
 
 	// private String findCallingTestFunctionName() {
 	// 	final var stack = Thread.currentThread().getStackTrace();
