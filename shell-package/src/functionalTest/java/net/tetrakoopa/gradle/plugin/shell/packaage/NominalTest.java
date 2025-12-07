@@ -39,8 +39,8 @@ public class NominalTest extends AbstractShellPackagePluginFunctionalTest {
         buildWithArguments("dispenser");
 
 
-        assertTrue("Variable 'mdu_sp_package_name' holds correct package name", grepVariableInDispenser("package_name","NominalTest_$_simplestPackage"));
-        assertTrue("Variable 'mdu_sp_package_label' holds correct package label", grepVariableInDispenser("package_label","NominalTest_$_simplestPackage"));
+        assertTrue("Variable 'mdu_sp_package_name' holds correct package name", grepVariableInDispenser("package_name","NominalTest---simplestPackage"));
+        assertTrue("Variable 'mdu_sp_package_label' holds correct package label", grepVariableInDispenser("package_label","NominalTest---simplestPackage"));
         assertEquals("There is no 'resource/banner.txt'", false, explodedFileExists("resource/banner.txt"));
     }
 

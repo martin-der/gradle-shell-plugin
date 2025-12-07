@@ -9,6 +9,9 @@ import java.io.InputStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
@@ -37,7 +40,19 @@ public class AbstractShellPackagePluginFunctionalTest {
 
     @Before
     public void init() throws IOException {
-        projectDir = new File(projectsDir, this.getClass().getSimpleName()+"_$_"+name.getMethodName());
+
+        final String[] rootPackage = AbstractShellPackagePluginFunctionalTest.class.getPackageName().split("\\.");
+        final String[] thispackage = this.getClass().getPackageName().split("\\.");
+
+        if (!isInSamepackageOrSubPacakge(thispackage, rootPackage)) {
+            throw new IllegalStateException("This test must be in the same pacakge or a sub pacakge of "+AbstractShellPackagePluginFunctionalTest.class.getPackageName());
+        }
+
+        final String subdirectory = Stream.of(Arrays.copyOfRange(thispackage, rootPackage.length,thispackage.length)).collect(Collectors.joining(File.separator));
+        final File parentProjectDir = new File(projectsDir, subdirectory);
+        Files.createDirectories(parentProjectDir.toPath());
+
+        projectDir = new File(parentProjectDir, this.getClass().getSimpleName()+"---"+name.getMethodName());
         buildDir = new File(projectDir, "build");
         Files.createDirectories(projectsDir.toPath());
         testData = new TestData();
@@ -116,4 +131,19 @@ public class AbstractShellPackagePluginFunctionalTest {
 		if (projectName.contains("/")) throw new IllegalArgumentException("'projectName' cannot contains any '/'");
 		return new File("src/functionalTest/resources/project.d/"+projectName+"/"+resourcePath);
 	}
+
+
+    private static boolean isInSamepackageOrSubPacakge(String[] thispackage, String[] rootPackage) {
+        if (!(rootPackage.length <= thispackage.length)) {
+            return false;
+        }
+        for (int i=0; i<rootPackage.length; i++) {
+            if (!thispackage[i].equals(rootPackage[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 }
