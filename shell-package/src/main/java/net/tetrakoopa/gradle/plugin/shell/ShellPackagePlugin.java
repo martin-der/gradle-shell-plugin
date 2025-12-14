@@ -168,8 +168,30 @@ public class ShellPackagePlugin implements Plugin<Project> {
                                 replacedMap.put(key, replaceValues(value, internal));
                             });
                             return replacedMap;
-                        }).get());
+                        }).get        // {
+        //     // if (extension.getBanner() != null) {
+        //         final UnaryOperator<String> identityFunction = UnaryOperator.identity();
+        //         final TaskProvider<TextFileSourceTask> prepareSourcesTaskProvider = project.getTasks().register("banner", TextFileSourceTask.class, banner -> {
+        //             final var bannerExtension = extension.getBanner();
+        //             banner.modify(project.provider(() -> {
+        //                 final var modify = extension.getBanner() == null ? null : extension.getBanner().getModify();
+        //                 return modify == null ? identityFunction : modify;
+        //             }).get());
+        //             banner.getSourceFile().set(project.provider(() -> {
+        //                 return extension.getBanner().getSource();
+        //             }).get());
+        //             banner.getDestinationFile().set(project.provider(() -> project.getLayout().getBuildDirectory().file(ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+"banner.txt")).get());
+
+        //         });
+        //         internal.task.prepareBanner = prepareSourcesTaskProvider.get();
+        //         internal.task.prepareBanner.setGroup(DISPENSER_TASK_GROUP);
+        //         internal.task.dispenserTask.dependsOn(internal.task.prepareBanner);
+        //     // }
+        // }
+
+());
                         properties.getOutputFile().set(project.provider(() -> project.getLayout().getBuildDirectory().file(RESOURCE_PATH_LAUCNCHER_PROPERTIES)).get());
+                        properties.getExportvariables().set(true);
 
                     });
                     internal.task.prepareLauncherProperties = prepareLauncherPropertiesTaskProvider.get();

@@ -1,7 +1,6 @@
 package net.tetrakoopa.gradle.plugin.task;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,9 +9,8 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import org.gradle.api.DefaultTask;
-import org.gradle.api.Project;
+import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.file.ConfigurableFileCollection;
-import org.gradle.api.file.RegularFile;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
@@ -24,6 +22,7 @@ import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 
 import lombok.Cleanup;
+import net.tetrakoopa.gradle.SystemUtil;
 import net.tetrakoopa.gradle.plugin.shell.ResourceUtil;
 import net.tetrakoopa.gradle.plugin.shell.ShellPackageDispenserArchiveBuilder;
 import net.tetrakoopa.gradle.plugin.shell.ShellPackageDispenserExecutorBuilder;
@@ -94,60 +93,51 @@ public abstract class DispenserTask extends DefaultTask {
         }
 
         final File explodedWorkFile = getProject().getLayout().getBuildDirectory().file(ShellPackagePlugin.EXPLODED_WORK_PATH).get().getAsFile();
-		        final String fileName = getProjectName().get();
-                // if (extension.getDistributionName() != null) {
-                //     fileName = extension.getDistributionName();
-                // } else if (extension.getName() != null) {
-                //     fileName = extension.getName().get();
-                // } else {
-                //     fileName = project.getName();
-                // }
+        final File contentExplodedDirectory = new File(explodedWorkFile, "content");
 
-                try {
-                    copyScriptUtils(explodedWorkFile);
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to copy runtime util scripts : "+e.getMessage(), e);
-                }
+        try {
+            copyScriptUtils(explodedWorkFile);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to copy runtime util scripts : "+e.getMessage(), e);
+        }
 
-                // try {
-                //     copyResources(internal.explodedPackageDir, extension, internal);
-                // } catch (IOException e) {
-                //     throw new RuntimeException("Failed to copy runtime resources : "+e.getMessage(), e);
-                // }
+        if (getLauncherReactorScript().isPresent()) {
+            final String reactorPath = getLauncherReactorScript().get();
+            final File reactor = new File(contentExplodedDirectory, reactorPath);
+            if (! reactor.exists()) {
+                throw new InvalidUserDataException("Launcher script '"+reactorPath+"' does not exist");
+            }
+            try {
+                SystemUtil.makeExecutable(reactor, false, false);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to make '"+reactor.getAbsolutePath()+"' : "+e.getMessage(), e);
+            }
+        }
 
-                try (ShellPackageDispenserExecutorBuilder builder = new ShellPackageDispenserExecutorBuilder(getExecutorTarget().get().getAsFile() /* getProjectName().get() *//* , extension */)) {
-                    builder
-                        .packageName(getProjectName().get())
-                        .label(getProjectLabel().get())
-                        .packageVersion(getProjectVersion().getOrNull())
-                        .actionModeStrategy(getMultiActionModeStrategy().get())
-                        .showBanner(getBanner().isPresent())
-                        .showReadme(getReadme().isPresent())
-                        .executeUserScript(getPostInstallScript().isPresent())
-                        .launcherScript(getLauncherReactorScript().getOrNull())
-                        .launcherScriptHasEnvironmentProperties(getLauncherReactorEnvironment().getOrElse(false));
-                    builder.build();
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to create dispense script : "+e.getMessage(), e);
-                }
+        try (ShellPackageDispenserExecutorBuilder builder = new ShellPackageDispenserExecutorBuilder(getExecutorTarget().get().getAsFile() /* getProjectName().get() *//* , extension */)) {
+            builder
+                .packageName(getProjectName().get())
+                .label(getProjectLabel().get())
+                .packageVersion(getProjectVersion().getOrNull())
+                .actionModeStrategy(getMultiActionModeStrategy().get())
+                .showBanner(getBanner().isPresent())
+                .showReadme(getReadme().isPresent())
+                .executeUserScript(getPostInstallScript().isPresent())
+                .launcherScript(getLauncherReactorScript().getOrNull())
+                .launcherScriptHasEnvironmentProperties(getLauncherReactorEnvironment().getOrElse(false));
+            builder.build();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create dispense script : "+e.getMessage(), e);
+        }
 
-                try (ShellPackageDispenserArchiveBuilder builder = new ShellPackageDispenserArchiveBuilder(explodedWorkFile, getTarget().get().getAsFile())) {
-                    builder.makeExecutable(true);
-                    builder.build();
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to create archive : "+e.getMessage(), e);
-                }
-
-                // final File archiveFile = new File(internal.dispenserWorkingDir, fileName+".shar");
-                // createArchive(archiveFile, extension, internal);
-
-                // try {
-                //     SystemUtil.makeExecutable(archiveFile, true, false);
-                // } catch (IOException e) {
-                //     throw new RuntimeException("Failed to make dispense executable : "+e.getMessage(), e);
-                // }
-
-                // postackageCreationSanityCheck(extension, internal);
+        final File archiveFile = getTarget().get().getAsFile();
+        try (ShellPackageDispenserArchiveBuilder builder = new ShellPackageDispenserArchiveBuilder(explodedWorkFile, archiveFile)) {
+            builder.makeExecutable(true);
+            builder.build();
+    		getLogger().lifecycle("Created archive file '{}'", archiveFile.getAbsolutePath());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create archive : "+e.getMessage(), e);
+        }
 
 
 	}
@@ -159,101 +149,6 @@ public abstract class DispenserTask extends DefaultTask {
         getExecutorTarget().fileValue(target);
     }
 
-    private void createArchive(File archiveFile, ShellPluginExtension extension) {
-        /*
-        final File dispenserFile = archiveFile;
-        final String author = getAuthor().getOrNull();
-        final FileOutputStream dispenserInputStream;
-
-        try {
-            dispenserInputStream = new FileOutputStream(dispenserFile);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException("Failed to open dispenser file '"+dispenserFile.getAbsolutePath()+"' from wrting : "+e.getMessage(), e);
-        }
-
-        try {
-
-
-            try {
-                this.getClass().getResourceAsStream("/dispenser/template/extract-pre.sh").transferTo(dispenserInputStream);
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to insert '/dispenser/template/extract-pre.sh'", e);
-            }
-
-            final ProcessBuilder builder = new ProcessBuilder();
-            builder.directory(internal.explodedPackageDir.getAbsoluteFile());
-            builder.command(createShellPackageCommand, "--quiet", "--quiet-unshar", "--submitter="+(author != null ? author : ""), ".");
-            
-            Process process;
-            try {
-                process = builder.start();
-
-                boolean trimingCommentAtStart = true;
-                try (final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                    
-                    final Pattern patternComment = Pattern.compile("^#.*");
-                    final Pattern patternExit = Pattern.compile("^exit[ ]+0");
-                    final Pattern patternEmpty = Pattern.compile("^[ \t]*");
-
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        if (trimingCommentAtStart) {
-                            if (patternComment.matcher(line).matches()) {
-                                continue;
-                            }
-                            trimingCommentAtStart = false;
-                        }
-                        if (patternExit.matcher(line).matches()) {
-                            final var byteBuffer = new ByteArrayOutputStream();
-                            final var buffer = new BufferedOutputStream(byteBuffer);
-                            buffer.write(line.getBytes());
-                            buffer.write('\n');
-                            boolean oneOrMoreNonEmptyLine = false;
-                            while ((line = reader.readLine()) != null) {
-                                buffer.write(line.getBytes());
-                                buffer.write('\n');
-                                if (!patternEmpty.matcher(line).matches()) {
-                                    oneOrMoreNonEmptyLine = true;
-                                    break;
-                                }
-                                oneOrMoreNonEmptyLine = true;
-                            }
-                            if (oneOrMoreNonEmptyLine) {
-                                dispenserInputStream.write(byteBuffer.toByteArray());
-                                dispenserInputStream.write('\n');
-                            } else {
-                                break;
-                            }
-                        } else {
-                            dispenserInputStream.write(line.getBytes());
-                            dispenserInputStream.write('\n');
-                        }
-                    }
-                }
-
-                final int exitCode = process.waitFor();
-                if (exitCode != 0) {
-                    throw new RuntimeException("Command '"+createShellPackageCommand+"' exited with "+exitCode);
-                }
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-
-            try {
-                this.getClass().getResourceAsStream("/dispenser/template/extract-post.sh").transferTo(dispenserInputStream);
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to insert '/dispenser/template/extract-post.sh'", e);
-            }
-
-        } finally {
-            try {
-                dispenserInputStream.close();
-            } catch (IOException e) {
-                    throw new RuntimeException("Failed to finalise dispenser file '"+dispenserFile.getAbsolutePath()+"' : "+e.getMessage(), e);
-            }
-        }
-        */
-    }
 
     private String buildArchiveFileName() {
         final StringBuilder builder = new StringBuilder();

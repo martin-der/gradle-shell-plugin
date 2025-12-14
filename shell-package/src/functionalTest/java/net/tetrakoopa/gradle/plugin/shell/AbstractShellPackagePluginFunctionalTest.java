@@ -67,6 +67,15 @@ public class AbstractShellPackagePluginFunctionalTest {
             .withProjectDir(projectDir)
             .build();
     }
+    protected BuildResult buildWithArgumentsAndFail(String ... arguments) {
+        return GradleRunner.create()
+            .withDebug(true)
+            .forwardOutput()
+            .withPluginClasspath()
+            .withArguments(arguments)
+            .withProjectDir(projectDir)
+            .buildAndFail();
+    }
 
 	protected void createFile(File file, String content) throws IOException {
         try (Writer writer = new FileWriter(file)) {
@@ -92,6 +101,9 @@ public class AbstractShellPackagePluginFunctionalTest {
 	protected boolean explodedFileExists(String filePath) {
        return explodedFile(filePath).exists();
     }
+	protected boolean explodedFileDoesNotExist(String filePath) {
+       return !explodedFile(filePath).exists();
+    }
 	protected InputStream explodedInputStream(String filePath) throws FileNotFoundException {
        return new FileInputStream(explodedFile(filePath));
     }
@@ -113,15 +125,6 @@ public class AbstractShellPackagePluginFunctionalTest {
         }
     }
 
-
-	// private String findCallingTestFunctionName() {
-	// 	final var stack = Thread.currentThread().getStackTrace();
-	// 	return stack[3].getMethodName();
-	// }
-	
-	// protected String testFolderName() {
-	// 	return this.getClass().getSimpleName()+"$"+findCallingTestFunctionName();
-	// }
 
 	protected boolean grepVariableInDispenser(String variable_name_suffix, int value) throws IOException {
         return grepVariableInDispenser(variable_name_suffix, String.valueOf(value), "i");

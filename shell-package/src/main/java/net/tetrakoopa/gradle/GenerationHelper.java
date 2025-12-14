@@ -2,7 +2,6 @@ package net.tetrakoopa.gradle;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.function.UnaryOperator;
 
@@ -18,6 +17,10 @@ public class GenerationHelper {
 		private final Writer writer;
 
 		private final Formatter formatter;
+
+		@Setter
+		@Accessors(fluent = true, chain = true)
+		private boolean exportVariables;
 
 		@Setter
 		@Accessors(fluent = true, chain = true)
@@ -64,14 +67,17 @@ public class GenerationHelper {
 			this.renamer = null;
 		}
 
-		public void append(String name, int value) throws IOException {
+		public PropertiesGenerator append(String name, int value) throws IOException {
 			write(name, String.valueOf(value), Integer.class);
+			return this;
 		}
-		private void append(String name, String value) throws IOException {
+		private PropertiesGenerator append(String name, String value) throws IOException {
 			write(name, value, null);
+			return this;
 		}
-		public void append(String name, Object value) throws IOException {
+		public PropertiesGenerator append(String name, Object value) throws IOException {
 			write(name, String.valueOf(value), value==null?null:value.getClass());
+			return this;
 		}
 		private void write(String name, String value, Class<?> valueClass) throws IOException {
 			if (renamer != null) {
@@ -79,6 +85,17 @@ public class GenerationHelper {
 			}
 			formatter.format(writer, name, value, valueClass);
 			writer.append('\n');
+			if (exportVariables) {
+				writer
+					.append("export ")
+					.append(name)
+					.append('\n');
+			}
+		}
+
+		public PropertiesGenerator append(String text) throws IOException {
+			writer.append(text);
+			return this;
 		}
 
 		@Override

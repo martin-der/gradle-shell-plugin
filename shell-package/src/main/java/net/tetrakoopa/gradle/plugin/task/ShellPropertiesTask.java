@@ -5,6 +5,7 @@ import org.gradle.api.Project;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.MapProperty;
+import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.TaskAction;
 
 import net.tetrakoopa.gradle.GenerationHelper;
@@ -21,28 +22,18 @@ import javax.inject.Inject;
 
 public abstract class ShellPropertiesTask extends DefaultTask {
     
-    private MapProperty<String, Object> environment;
-    // private RegularFileProperty outputFile;
+    private final MapProperty<String, Object> environment;
+
+    @Input
+    public abstract Property<Boolean> getExportvariables();
     
     @Input
     public MapProperty<String, Object> getEnvironment() {
 		return environment;
 	};
     
-    // public void setVariables(Property<Map<String, Object>> variables) {
-    //     this.variables = variables;
-    // }
-    
     @OutputFile
     public abstract RegularFileProperty getOutputFile();
-    
-    // public void setOutputFile(RegularFileProperty outputFile) {
-    //     this.outputFile = outputFile;
-    // }
-    
-    // public void setOutputFile(String filePath) {
-    //     this.outputFile = new RegularFileProperty(filePath);
-    // }
     
 	@Inject
     public ShellPropertiesTask(ObjectFactory objects, Project project) {
@@ -51,12 +42,6 @@ public abstract class ShellPropertiesTask extends DefaultTask {
 
     @TaskAction
     public void createEnvFile() throws IOException {
-        // if (environment == null) {
-        //     throw new IllegalArgumentException("Variables map cannot be null or empty");
-        // }
-        // if (outputFile == null) {
-        //     throw new IllegalArgumentException("Output file must be specified");
-        // }
 
 		final var finalOutput = getOutputFile().getAsFile().get();
         finalOutput.getParentFile().mkdirs();
@@ -64,11 +49,16 @@ public abstract class ShellPropertiesTask extends DefaultTask {
 		final var finalEnvironment = getEnvironment().get();
 
 		try(final var generator = new GenerationHelper.PropertiesGenerator(new FileWriter(finalOutput))) {
+            generator.exportVariables(getExportvariables().get());
+            boolean isFirst = true;
             for (Map.Entry<String, Object> entry : finalEnvironment.entrySet()) {
+                if (isFirst) {
+                    isFirst = false;
+                } else {
+                    generator.append("\n");
+                }
 				generator.append(entry.getKey(), entry.getValue());
 			}
 		}
-
-		getLogger().lifecycle("Created environment file with {} variable(s) at: {}", finalEnvironment.size(), finalOutput.getAbsolutePath());
     }
 }

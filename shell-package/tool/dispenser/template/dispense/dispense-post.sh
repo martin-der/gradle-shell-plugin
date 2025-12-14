@@ -188,7 +188,7 @@ if [ ${action} = 'LAUNCH' ]; then
 
 	log_debug cd "${MDU_SD_INSTALL_TEMP_DIR}"
 
-	source "${MDU_SD_INSTALL_TEMP_DIR}/resource/launcher-properties.sh"
+	[ ${mdu_sp_executable_has_environment_properties} -ne 0 ] && source "${MDU_SD_INSTALL_TEMP_DIR}/resource/launcher-properties.sh"
 
 	log_debug "execute 'content/content/${mdu_sp_executable_reactor_script}'"
 	"${MDU_SD_INSTALL_TEMP_DIR}/content/${mdu_sp_executable_reactor_script}"

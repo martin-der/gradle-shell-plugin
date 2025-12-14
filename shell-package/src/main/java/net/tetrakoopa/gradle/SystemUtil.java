@@ -2,15 +2,14 @@ package net.tetrakoopa.gradle;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Set;
-import java.nio.file.*;
-import java.nio.file.attribute.*;
-import java.io.IOException;
-
+import java.util.function.Consumer;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -61,5 +60,56 @@ public class SystemUtil {
 	        
 		return octal;
     }
+
+	public static class ProcessExecutor {
+
+		private final String[] command;
+		private OutputStream output;
+		private OutputStream error;
+
+		public ProcessExecutor(String... command) {
+			this.command = command;
+		}
+
+		public ProcessExecutor output(OutputStream output) {
+			this.output = output;
+			return this;
+		}
+		public ProcessExecutor error(OutputStream error) {
+			this.error = error;
+			return this;
+		}
+
+
+		public void run() throws IOException {
+			run(null);
+		}
+		public void run(Consumer<OutputStream> stdinConsumer) throws IOException {
+		
+			final ProcessBuilder builder = new ProcessBuilder(command);
+			final Process process = builder.start();
+
+			final OutputStream stdin = process.getOutputStream();
+			final InputStream stdout = process.getInputStream();
+			final InputStream stderr = process.getErrorStream();
+
+			if (stdinConsumer != null) {
+				stdinConsumer.accept(stdin);
+			}
+
+			byte[] buffer = new byte[1000]; 
+			int read;
+			while ((read = stdout.read(buffer)) > 0) {
+				if (output != null) {
+					output.write(buffer, 0, read);
+				}
+			};
+			while ((read = stderr.read(buffer)) > 0) {
+				if (error != null) {
+					error.write(buffer, 0, read);
+				}
+			}
+		}
+	}
 
 }
