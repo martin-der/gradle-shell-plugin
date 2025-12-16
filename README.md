@@ -17,7 +17,7 @@ buildscript{
 		maven { url 'https://jitpack.io' }
 	}
 	dependencies {
-		classpath "com.github.martin-der.gradle-shell-plugin:shell:0.2.0"
+		classpath "com.github.martin-der.gradle-shell-plugin:shell:v0.2.0"
 	}
 }
 ~~~
