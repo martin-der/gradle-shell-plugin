@@ -12,6 +12,7 @@ import net.tetrakoopa.gradle.plugin.task.TextFileSourceTask;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.Task;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Copy;
 import org.gradle.api.tasks.TaskProvider;
@@ -79,6 +80,12 @@ public class ShellPackagePlugin implements Plugin<Project> {
         dispenserTask.dependsOn(internal.task.prepareSources);
         internal.task.dispenserTask = dispenserTask;
 
+
+        final TaskProvider<Task> buildProvider = project.getTasks().register("shell-build", Task.class);
+        final Task buildTask = buildProvider.get();
+        buildTask.setGroup(DISPENSER_TASK_GROUP);
+        buildTask.dependsOn(dispenserTask);
+        
 
         project.afterEvaluate(p -> {
             postEvaluateSanityCheck(extension);
@@ -152,7 +159,7 @@ public class ShellPackagePlugin implements Plugin<Project> {
                     internal.task.dispenserTask.dependsOn(internal.task.prepareLauncherProperties);
                 }
             }
-        }  
+        }
 
     }
 

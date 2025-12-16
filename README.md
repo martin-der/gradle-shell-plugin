@@ -17,12 +17,12 @@ buildscript{
 		maven { url 'https://jitpack.io' }
 	}
 	dependencies {
-		classpath "com.github.martin-der.gradle-shell-plugin:shell:v0.1.2"
+		classpath "com.github.martin-der.gradle-shell-plugin:shell:0.2.0"
 	}
 }
 ~~~
 
-### :package: Package
+### 📦 Package
 
 #### Setup
 
@@ -32,7 +32,7 @@ Apply the plugin :
 apply plugin: 'net.tetrakoopa.shell-package'
 ~~~
 
-This is the setup for package creation :
+The minimal setup needs some sources :
 
 ~~~groovy
 shell_package {
@@ -49,15 +49,14 @@ shell_package {
 
 then run `gradle shell-build`.
 
-The `shar` command from [sharutil](https://www.gnu.org/software/sharutils/) must be available on the PATH.
-
 
 Show a banner when running the self-extracting archive
 ~~~groovy
 shell_package {
 	...
 	banner {
-		content.path = file('package/banner.txt')
+		source "resource/banner.txt"
+		modify { line -> line.replace("{{version}}", "1.2.3-beta") }
 	}
 
 }
@@ -68,103 +67,38 @@ Optionally show a README or execute a script after a successful installation
 shell_package {
 	...
 	installer {
-		readme.location = 'README.md'
 
-		userScript {
-			script.location = "bin/format-C-colon"
-			question = "Do you want execute post-install script to free some space"
+		readme {
+			location "resource/install-readme.md"
+			modify = { 
+				line -> line
+					.replace("{{year}}", new Date().format("yyyy")) 
+					.replace("{{author}}", "Alan Turing")
+			}
 		}
 	}
 }
 ~~~
 
-Packages are created by default in the project's build directory. This can be changed with the `output` configuration.
-
 ~~~groovy
-shell_package {
-	...
-	output {
-		distributionDirectory 'dist'
+	launcher {
+		script = "bin/server.sh"
+		environment = [
+			MY_THEME_COLOR: 'green',
+			MY_VARIALBE_THAT_HOLDS_THE_CONTENT_DIRECTORY: '{{MDU-SD_CONTENT-DIRECTORY}}'
+		]
 	}
-}
 ~~~
 
-Optionally generate markdown documentation file from comments in script.
+#### 💻 Usage
 
-It requires [gawk](https://www.gnu.org/software/gawk/) to be available on the PATH.
+Package can be extracted :
+```shell
+./my-package install
+```
 
-TODO syntax and examples [here](README-comment-to-markdown.md) 
- 
-~~~groovy
-shell_package {
-	...
-	documentation {
-		tableOfContent = true
-		lot {
-			into "share/doc"
-		}
-	}
-}
-~~~
-
-#### Execution
-
-Call `gradle package` to generate documentation then create a zip archive and an installer.
-
-### :microscope: Test
-
-#### Setup
-
-Apply the plugin :
-
-~~~
-apply plugin: 'net.tetrakoopa.shell-test'
-~~~
-
-Test configuration is done by adding a collection of test script.
-
-~~~groovy
-shell_test {
-	from fileTree("test").include('*.sh')
-	workingDir = project.file("test")
-}
-~~~
-
-You are now ready to create tests in the directory 'test'.
-
-It is powered by [shunit2](https://github.com/kward/shunit2).
-
-See [test plugin README](test/README.md) for explanations about writing test.
-
-#### Execution
-
-Call `gradle shell-test` to run all tests.
-
-
-~~~groovy
-shell_test {
-	from fileTree("test").include('*.sh')
-	workingDir = project.file("test")
-
-	naming {
-		// will remove the '.sh' part from the generated test task name
-		removeSuffix = true
-	}
-
-}
-~~~
-
-When the [shellcheck](https://www.shellcheck.net/) command if accessible in the PATH, it is possible to generate reports.
-Script files must be set with `scriptFrom`. 
-~~~groovy
-shell_test {
-    ...
-	scriptFrom fileTree("src").include('**/*.sh')
-	check {
-        resultsDir 'check-result'
-	}
-
-}
-~~~
-
-
+Or, if a `laucher` section is provided, package can be executed :
+```shell
+./my-package launch
+```
+The script indicated by `launcher.script` with be executed.
