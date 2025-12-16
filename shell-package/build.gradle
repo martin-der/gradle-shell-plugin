@@ -40,6 +40,10 @@ def functionalTest = sourceSets.create('functionalTest')
 gradlePlugin.testSourceSets(functionalTest)
 
 configurations[functionalTest.implementationConfigurationName].extendsFrom(configurations.testImplementation)
+// configurations[functionalTest.implementationConfigurationName].dependencies({
+    // compileOnly("org.projectlombok:lombok:1.18.42")
+	// annotationProcessor("org.projectlombok:lombok:1.18.42")
+// })
 
 def functionalTestTask = tasks.register('functionalTest', Test) {
     testClassesDirs = functionalTest.output.classesDirs

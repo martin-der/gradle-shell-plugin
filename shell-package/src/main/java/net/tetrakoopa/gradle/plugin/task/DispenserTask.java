@@ -84,8 +84,6 @@ public abstract class DispenserTask extends DefaultTask {
 
 	@TaskAction
 	public void execute() {
-		final String projectName = getProjectName().get();
-        final Set<File> sources = getSources().getFiles();
         final File dispenserFile = getExecutorTarget().get().getAsFile();
         
         if (!dispenserFile.getParentFile().exists()) {

@@ -94,7 +94,6 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		this.version = objects.property(String.class);
         this.source = objects.property(CopySpec.class);
 		this.source.convention(project.copySpec());
-        // this.message = objects.property(String);
     }
 
 	private final Project project;
@@ -165,7 +164,6 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 			final PathOrContentLocation licence = new PathOrContentLocation.Default();
 			String preamble;
 			String agreementRequest;
-			// void content(Closure closure) { licence.__configure(closure, "installer licence content")}
 		}
 
 		final Prefix prefix = new Prefix();
@@ -185,7 +183,7 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		}
 
 		boolean makeExecutable;
-		// void makeExecutable(boolean executable) { this.executable = executable }
+		void makeExecutable(boolean executable) { this.makeExecutable = executable; }
 
 		void userScript(Closure<UserScript> closure) { ConfigureUtil.configure(closure, userScript); }
 		void readme(String location) { 
@@ -225,17 +223,6 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		ConfigureUtil.configure(closure, action);
 	}
 
-	// void source(Closure<CopySpec> closure) {
-	// 	source.set(project.copySpec(closure));
-	// 	var qsd = source.get();
-	// 	                System.out.println("Closure source : ");
-    //             qsd.eachFile(f -> {
-    //                 System.out.println("- : "+f.getName()); 
-
-    //             });
-
-
-	// }
 	void source(Action<CopySpec> action) {
 		action.execute(source.get());
 	}
