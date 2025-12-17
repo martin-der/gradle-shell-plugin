@@ -1,5 +1,6 @@
 plugins {
     id 'java-gradle-plugin'
+    id 'maven-publish'
 }
 
 repositories {
@@ -12,6 +13,8 @@ dependencies {
 
     testImplementation 'junit:junit:4.13'
 }
+
+group = 'com.github.martin-der'
 
 gradlePlugin {
     plugins {
