@@ -11,7 +11,7 @@ Gradle plugins for script (bash) unit testing and packaging
 
 Plugin is available from [jitpack](https://jitpack.io).
 
-~~~
+```groovy
 buildscript{
 	repositories{
 		maven { url 'https://jitpack.io' }
@@ -20,7 +20,7 @@ buildscript{
 		classpath "com.github.martin-der.gradle-shell-plugin:shell:v0.2.0"
 	}
 }
-~~~
+```
 
 ### 📦 Package
 
@@ -28,13 +28,13 @@ buildscript{
 
 Apply the plugin :
 
-~~~
+```groovy
 apply plugin: 'net.tetrakoopa.shell-package'
-~~~
+```
 
 The minimal setup needs some sources :
 
-~~~groovy
+```groovy
 shell_package {
 
 	source {
@@ -45,13 +45,13 @@ shell_package {
 		from file('README.md')
 	}
 }
-~~~
+```
 
 then run `gradle shell-build`.
 
 
 Show a banner when running the self-extracting archive
-~~~groovy
+```groovy
 shell_package {
 	...
 	banner {
@@ -60,10 +60,11 @@ shell_package {
 	}
 
 }
-~~~
+```
 
 Optionally show a README or execute a script after a successful installation
-~~~groovy
+
+```groovy
 shell_package {
 	...
 	installer {
@@ -78,17 +79,19 @@ shell_package {
 		}
 	}
 }
-~~~
+```
 
-~~~groovy
+Indicate a script that can be used as main to make the package executable
+
+```groovy
 	launcher {
 		script = "bin/server.sh"
 		environment = [
 			MY_THEME_COLOR: 'green',
-			MY_VARIALBE_THAT_HOLDS_THE_CONTENT_DIRECTORY: '{{MDU-SD_CONTENT-DIRECTORY}}'
+			MY_VARIABLE_THAT_HOLDS_THE_CONTENT_DIRECTORY: '{{MDU-SD_CONTENT-DIRECTORY}}'
 		]
 	}
-~~~
+```
 
 #### 💻 Usage
 
