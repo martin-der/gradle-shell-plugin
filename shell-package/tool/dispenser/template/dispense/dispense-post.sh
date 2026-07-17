@@ -277,4 +277,10 @@ execute_user_script || {
 	exit 2
 }
 
+if [ ${MDU_SD_USE_PERSISTENT_TEMP_DIRECTORY} -eq 1 ]; then
+	log_debug "Schedule removing persistent temp directory on exit : '${MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY}'"
+
+	rm -f "${MDU_SD_PERSISTENT_TEMP_DIRECTORY_KEEP_LOCK}"
+fi
+
 exit 0

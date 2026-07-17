@@ -71,6 +71,9 @@ public abstract class DispenserTask extends DefaultTask {
     @OutputFile
 	public abstract RegularFileProperty getTarget();
 
+    @Input @Optional
+	public abstract Property<Boolean> getUsePersistentTemporaryDirectory();
+
 	private static final String DISPENSE_FILENAME = "dispense.sh";
 
 	@Inject
@@ -131,6 +134,9 @@ public abstract class DispenserTask extends DefaultTask {
         final File archiveFile = getTarget().get().getAsFile();
         try (ShellPackageDispenserArchiveBuilder builder = new ShellPackageDispenserArchiveBuilder(explodedWorkFile, archiveFile)) {
             builder.makeExecutable(true);
+            builder.applicationName(getProjectName().get());
+            builder.applicationName(getProjectVersion().getOrNull());
+            builder.usePersistentTempFolder(getUsePersistentTemporaryDirectory().getOrElse(true));
             builder.build();
     		getLogger().lifecycle("Created archive file '{}'", archiveFile.getAbsolutePath());
         } catch (IOException e) {

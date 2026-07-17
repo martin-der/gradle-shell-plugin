@@ -9,6 +9,8 @@ import java.io.InputStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -44,8 +46,8 @@ public class AbstractShellPackagePluginFunctionalTest {
         final String[] rootPackage = AbstractShellPackagePluginFunctionalTest.class.getPackageName().split("\\.");
         final String[] thispackage = this.getClass().getPackageName().split("\\.");
 
-        if (!isInSamepackageOrSubPacakge(thispackage, rootPackage)) {
-            throw new IllegalStateException("This test must be in the same pacakge or a sub pacakge of "+AbstractShellPackagePluginFunctionalTest.class.getPackageName());
+        if (!isInSamePackageOrSubPackage(thispackage, rootPackage)) {
+            throw new IllegalStateException("This test must be in the same pacakge or a sub package of "+AbstractShellPackagePluginFunctionalTest.class.getPackageName());
         }
 
         final String subdirectory = Stream.of(Arrays.copyOfRange(thispackage, rootPackage.length,thispackage.length)).collect(Collectors.joining(File.separator));
@@ -54,6 +56,9 @@ public class AbstractShellPackagePluginFunctionalTest {
 
         projectDir = new File(parentProjectDir, this.getClass().getSimpleName()+"---"+name.getMethodName());
         buildDir = new File(projectDir, "build");
+        if (projectsDir.exists()) {
+            IOUtil.deleteDirectory(projectsDir);
+        }
         Files.createDirectories(projectsDir.toPath());
         testData = new TestData();
     }
@@ -90,8 +95,14 @@ public class AbstractShellPackagePluginFunctionalTest {
 	protected void copyProjectDirectory(String projectName, String source, String target) throws IOException {
 		IOUtil.copyDirectory(projectResource(projectName, source), new File(projectDir, target));  
 	}
+	protected void copyProjectDirectory(String projectName, String source) throws IOException {
+		copyProjectDirectory(projectName, source, source);  
+	}
 	protected void copyProjectFile(String projectName, String source, String target) throws IOException {
 		IOUtil.copyFile(projectResource(projectName, source), new File(projectDir, target));  
+	}
+	protected void copyProjectFile(String projectName, String source) throws IOException {
+		copyProjectFile(projectName, source, source);  
 	}
 
 
@@ -150,7 +161,7 @@ public class AbstractShellPackagePluginFunctionalTest {
 	}
 
 
-    private static boolean isInSamepackageOrSubPacakge(String[] thispackage, String[] rootPackage) {
+    private static boolean isInSamePackageOrSubPackage(String[] thispackage, String[] rootPackage) {
         if (!(rootPackage.length <= thispackage.length)) {
             return false;
         }

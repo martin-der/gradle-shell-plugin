@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
 import java.util.Iterator;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import lombok.AccessLevel;
@@ -25,6 +26,15 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 	private final File sourceDirectory;
 
 	private boolean makeExecutable;
+
+	private boolean usePersistentTempFolder;
+
+	private String applicationName;
+	private String applicationVersion;
+
+	
+	private static final String UNKNOWN_APPLICATION_NAME = "unknown";
+	private static final String VARIABLE_PERSISTENT_TEMP_FOLDER = "MDU_SD_PERSISTENT_TEMP_FOLDER";
 	
 	public ShellPackageDispenserArchiveBuilder(File sourceDirectory, File targetFile) throws FileNotFoundException {
 		super(targetFile);
@@ -34,6 +44,21 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 	public void build() throws IOException {
 
 		writeClassPathResource("/template/extract-pre.sh");
+
+		write("\n\n");
+
+		insertProperty("MDU_SD_INSTALL_APPLICATION_LABEL", "\""+(applicationName == null?"":applicationName)+"\"");
+		insertProperty("MDU_SD_INSTALL_APPLICATION_NAME", "\""+(applicationName == null?"":applicationName)+"\"");
+		insertProperty("MDU_SD_INSTALL_APPLICATION_VERSION", "\""+(applicationVersion == null?"":applicationVersion)+"\"");
+		if (usePersistentTempFolder) {
+			insertProperty(VARIABLE_PERSISTENT_TEMP_FOLDER, "\"mdu-shell-dispenser__"
+			+(applicationName==null?UNKNOWN_APPLICATION_NAME:applicationName)
+			+(applicationVersion==null?"":("__"+applicationVersion))+"__"+UUID.randomUUID().toString()+"\"");
+		}
+
+		write("\n\n");
+
+		writeClassPathResource("/template/extract-before-extraction.sh");
 
 		write("\n\n");
 

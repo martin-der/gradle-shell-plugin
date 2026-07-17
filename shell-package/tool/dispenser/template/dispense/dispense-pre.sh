@@ -12,9 +12,9 @@ log_debug "Working in '$(pwd)'"
 
 
 function print_application_information() {
-	log_info "Application '${MDU_INSTALL_APPLICATION_LABEL}'"
-	log_info "    Name    : ${MDU_INSTALL_APPLICATION_NAME}"
-	log_info "    Version : ${MDU_INSTALL_APPLICATION_VERSION}"
+	log_info "Application '${MDU_SD_INSTALL_APPLICATION_LABEL}'"
+	log_info "    Name    : ${MDU_SD_INSTALL_APPLICATION_NAME}"
+	log_info "    Version : ${MDU_SD_INSTALL_APPLICATION_VERSION}"
 }
 
 function print_technical_information() {
