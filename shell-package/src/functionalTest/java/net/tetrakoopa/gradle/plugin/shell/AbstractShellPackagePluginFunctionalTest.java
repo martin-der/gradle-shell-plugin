@@ -56,8 +56,8 @@ public class AbstractShellPackagePluginFunctionalTest {
 
         projectDir = new File(parentProjectDir, this.getClass().getSimpleName()+"---"+name.getMethodName());
         buildDir = new File(projectDir, "build");
-        if (projectsDir.exists()) {
-            IOUtil.deleteDirectory(projectsDir);
+        if (projectDir.exists()) {
+            IOUtil.deleteDirectory(projectDir);
         }
         Files.createDirectories(projectsDir.toPath());
         testData = new TestData();
