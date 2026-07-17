@@ -5,8 +5,6 @@ if [ "x${MDU_SD_PERSISTENT_TEMP_FOLDER:-}" != "x" ] ; then
 	declare -r ROOT_TEMP_DIRECTORY="$(dirname "$(mktemp -u)")"
 	declare -r MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY="${ROOT_TEMP_DIRECTORY}/${MDU_SD_PERSISTENT_TEMP_FOLDER}"
 
-	mkdir "${MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY}" || exit 1
-
 	MDU_SD_INSTALL_TEMP_DIR=${MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY}
 else
 	declare -r MDU_SD_USE_PERSISTENT_TEMP_DIRECTORY=0
@@ -37,7 +35,12 @@ if [ ${MDU_SD_USE_PERSISTENT_TEMP_DIRECTORY} -eq 1 ] ; then
 		mdu_sd_execute_dispense "${@}"
 		exit $?
 	fi
+
+	mkdir "${MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY}"
 fi
+
+
+
 
 mdu_sd_command_exists "base64" && {
 	MDU_SD_DECODE_BASE64="base64 --decode"
