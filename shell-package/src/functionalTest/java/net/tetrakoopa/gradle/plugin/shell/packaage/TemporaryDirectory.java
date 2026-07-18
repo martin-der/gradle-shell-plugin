@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
 import net.tetrakoopa.gradle.plugin.shell.AbstractShellPackagePluginFunctionalTest;
 
 
-public class TemporaryInstall extends AbstractShellPackagePluginFunctionalTest{
+public class TemporaryDirectory extends AbstractShellPackagePluginFunctionalTest{
 	
 
     @Test

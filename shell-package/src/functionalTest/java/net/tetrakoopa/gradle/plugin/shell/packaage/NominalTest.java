@@ -164,7 +164,7 @@ public class NominalTest extends AbstractShellPackagePluginFunctionalTest {
         assertEquals("There is no 'resource/banner.txt'", false, explodedFileExists("resource/banner.txt"));
     }
 
-        @Test
+    @Test
     public void simplePackageWithNameAndVersion() throws IOException {
 
 
