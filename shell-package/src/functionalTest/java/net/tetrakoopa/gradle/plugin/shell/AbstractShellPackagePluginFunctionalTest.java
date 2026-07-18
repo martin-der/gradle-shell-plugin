@@ -141,6 +141,9 @@ public class AbstractShellPackagePluginFunctionalTest {
     protected File dispenserFile(String fileName) {
        return new File(buildDir, "shell/dispenser/"+fileName);
     }
+    protected boolean dispenserFileExists(String fileName) {
+       return dispenserFile(fileName).exists();
+    }
 	protected InputStream dispenserFileStream(String fileName) throws FileNotFoundException {
        return new FileInputStream(dispenserFile(fileName));
     }

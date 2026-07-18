@@ -47,7 +47,8 @@ public class Launcher extends AbstractShellPackagePluginFunctionalTest {
 
         assertTrue("Variable 'mdu_sp_executable_reactor_script' holds correct script path", grepVariableInDispenser("executable_reactor_script","bin/reactor.sh"));
         assertTrue("Not user properties file is generated", explodedFileDoesNotExist("resource/launcher-properties.sh"));
-        assertEquals("Stdout output of the launched script is what's expected", """
+        assertTrue("Dispenser file exists", dispenserFileExists("foobar.sh"));
+        assertEquals("Stdout output of the launcher script is what's expected", """
                 There was a tiger named 'some-unknown-tiger'
                 and a dog named 'some-unknown-dog'.
                 """,
@@ -97,7 +98,8 @@ public class Launcher extends AbstractShellPackagePluginFunctionalTest {
                 dog=Snoopy
                 export dog
                 """);
-        assertEquals("Stdout output of the launched script is what's expected", """
+        assertTrue("Dispenser file exists", dispenserFileExists("foobar.sh"));
+        assertEquals("Stdout output of the launcher script is what's expected", """
                 There was a tiger named 'Hobbes'
                 and a dog named 'Snoopy'.
                 """,
