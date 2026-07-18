@@ -135,7 +135,7 @@ public abstract class DispenserTask extends DefaultTask {
         try (ShellPackageDispenserArchiveBuilder builder = new ShellPackageDispenserArchiveBuilder(explodedWorkFile, archiveFile)) {
             builder.makeExecutable(true);
             builder.applicationName(getProjectName().get());
-            builder.applicationName(getProjectVersion().getOrNull());
+            builder.applicationVersion(getProjectVersion().getOrNull());
             builder.usePersistentTempFolder(getUsePersistentTemporaryDirectory().getOrElse(true));
             builder.build();
     		getLogger().lifecycle("Created archive file '{}'", archiveFile.getAbsolutePath());

@@ -73,6 +73,7 @@ public class ShellPackagePlugin implements Plugin<Project> {
             dispenser.getReadme().set(project.provider(() -> extension.getInstaller().readme == null ? null : project.getLayout().getBuildDirectory().file(RESOURCE_PATH_README).get()));
             dispenser.getLauncherReactorScript().set(project.provider(() -> extension.getLauncher() == null ? null : extension.getLauncher().getScript()));
             dispenser.getLauncherReactorEnvironment().set(project.provider(() -> extension.getLauncher() == null ? false : !extension.getLauncher().getEnvironment().isEmpty()));
+            dispenser.getUsePersistentTemporaryDirectory().set(project.provider(() -> extension.isKeepTemporaryDirectory()));
         });
         final DispenserTask dispenserTask = internal.task.dispenserTask = dispenserTaskProvider.get();
 

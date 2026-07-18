@@ -227,6 +227,10 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		action.execute(source.get());
 	}
 
+	boolean keepTemporaryDirectory = true;
+	void keepTemporaryDirectory(boolean keepIt) { this.keepTemporaryDirectory = keepIt; }
+
+
 	void information(Closure<Information> closure) { ConfigureUtil.configure(closure, information); }
 	// void output(Closure closure) { ConfigureUtil.configure(closure, output); }
 	// void documentation(Closure closure) { ConfigureUtil.configure(closure, documentation); }

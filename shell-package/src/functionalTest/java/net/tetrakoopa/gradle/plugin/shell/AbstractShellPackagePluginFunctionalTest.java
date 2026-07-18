@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -35,6 +36,7 @@ public class AbstractShellPackagePluginFunctionalTest {
 
     protected static class TestData {
         String dispenser_sh;
+        String main_script_sh;
     }
 
     @Rule
@@ -106,7 +108,19 @@ public class AbstractShellPackagePluginFunctionalTest {
 	}
 
 
-	protected File explodedFile(String filePath) {
+	private File mainScript() {
+       return new File(buildDir, "shell/dispenser/"+"foobar.sh");
+    }
+	private InputStream mainScriptStream() throws FileNotFoundException {
+       return new FileInputStream(mainScript());
+    }
+	private String mainScriptText() throws IOException {
+        try (InputStream stream = mainScriptStream()) {
+            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    protected File explodedFile(String filePath) {
        return new File(buildDir, "shell/dispenser/exploded/"+filePath);
     }
 	protected boolean explodedFileExists(String filePath) {
@@ -136,12 +150,41 @@ public class AbstractShellPackagePluginFunctionalTest {
         }
     }
 
-
-	protected boolean grepVariableInDispenser(String variable_name_suffix, int value) throws IOException {
-        return grepVariableInDispenser(variable_name_suffix, String.valueOf(value), "i");
+    protected boolean grepVariableInMainScript(String name_suffix, int value) throws IOException {
+        return grepVariableInMainScript(name_suffix, String.valueOf(value), "i");
     }
-    protected boolean grepVariableInDispenser(String variable_name_suffix, String value) throws IOException {
-        return grepVariableInDispenser(variable_name_suffix, value, "");
+    protected boolean grepVariableInMainScript(String name_suffix, String value) throws IOException {
+        return grepVariableInMainScript(name_suffix, value, "");
+    }
+    protected boolean grepVariableInMainScript(String name_suffix, String value, String typeArg) throws IOException {
+        final String main_script_sh = getMainScriptSh();
+        return main_script_sh.contains("\n"+"declare -r"+typeArg+" MDU_SD_"+name_suffix+"="+value+"\n");
+    }
+    protected boolean noGrepVariableInMainScript(String name_suffix) throws IOException {
+        final String main_script_sh = getMainScriptSh();
+        return ! Pattern.compile("\n"+"declare -r[a-z]? MDU_SD_"+name_suffix+"=.*\n").matcher(main_script_sh).find();
+    }
+    protected boolean rgrepVariableInMainScript(String name_suffix, String valueRegex) throws IOException {
+        return rgrepVariableInMainScript(name_suffix, valueRegex, "");
+    }
+    protected boolean rgrepVariableInMainScript(String name_suffix, String valueRegex, String typeArg) throws IOException {
+        final String main_script_sh = getMainScriptSh();
+        return Pattern.compile("\n"+"declare -r"+typeArg+" MDU_SD_"+name_suffix+"="+valueRegex+"\n").matcher(main_script_sh).find();
+    }
+
+    private String getMainScriptSh() throws IOException {
+        if (testData.main_script_sh == null) {
+            testData.main_script_sh = mainScriptText();
+        }
+        return testData.main_script_sh;
+    }
+
+
+	protected boolean grepVariableInDispenser(String name_suffix, int value) throws IOException {
+        return grepVariableInDispenser(name_suffix, String.valueOf(value), "i");
+    }
+    protected boolean grepVariableInDispenser(String name_suffix, String value) throws IOException {
+        return grepVariableInDispenser(name_suffix, value, "");
     }
     protected boolean grepVariableInDispenser(String name_suffix, String value, String typeArg) throws IOException {
         final String dispenser_sh = getDispenseSh();
