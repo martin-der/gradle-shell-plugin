@@ -47,6 +47,8 @@ configurations[functionalTest.implementationConfigurationName].extendsFrom(confi
     // compileOnly("org.projectlombok:lombok:1.18.42")
 	// annotationProcessor("org.projectlombok:lombok:1.18.42")
 // })
+configurations[functionalTest.compileOnlyConfigurationName].extendsFrom(configurations.compileOnly)
+configurations[functionalTest.annotationProcessorConfigurationName].extendsFrom(configurations.annotationProcessor)
 
 def functionalTestTask = tasks.register('functionalTest', Test) {
     testClassesDirs = functionalTest.output.classesDirs
