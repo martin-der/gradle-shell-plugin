@@ -4,5 +4,5 @@ steps:
       event: [tag, push]
     image: eclipse-temurin:21-jdk-alpine
     commands:
-      - apk add git
+      - apk add git bash
       - ./gradlew build
