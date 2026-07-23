@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
@@ -11,12 +12,13 @@ import java.nio.charset.StandardCharsets;
 import org.gradle.testkit.runner.BuildResult;
 import org.junit.Test;
 import net.tetrakoopa.gradle.plugin.common.SystemUtil;
+import net.tetrakoopa.gradle.plugin.common.SystemUtil.ChrootedScriptExecutor;
 import net.tetrakoopa.gradle.plugin.shell.AbstractShellPackagePluginFunctionalTest;
 
 public class Launcher extends AbstractShellPackagePluginFunctionalTest {
 
     @Test
-    public void addLauncher() throws IOException {
+    public void addLauncher() throws IOException, InterruptedException {
 
 
         copyProjectDirectory("foobar-project", "script", "script");
@@ -56,7 +58,7 @@ public class Launcher extends AbstractShellPackagePluginFunctionalTest {
     }
 
     @Test
-    public void addLauncherWithEnvironmentProperties() throws IOException {
+    public void addLauncherWithEnvironmentProperties() throws IOException, InterruptedException {
 
 
         copyProjectDirectory("foobar-project", "script", "script");
@@ -99,11 +101,16 @@ public class Launcher extends AbstractShellPackagePluginFunctionalTest {
                 export dog
                 """);
         assertTrue("Dispenser file exists", dispenserFileExists("foobar.sh"));
+        ChrootedScriptExecutor executor = new SystemUtil.ChrootedScriptExecutor(buildDir(), "shell/foobar.sh", "launch");
+        executor.grabOutput().grabError();
+        int result = executor.executeScript(null);
+        System.out.println("Output :\n"+executor.grabbedOutput());
+        System.out.println("Error :\n"+executor.grabbedError());
         assertEquals("Stdout output of the launcher script is what's expected", """
                 There was a tiger named 'Hobbes'
                 and a dog named 'Snoopy'.
                 """,
-            getLauncherStdOut("foobar.sh", "launch"));
+            executor.grabbedOutput());
 
     }
 
@@ -146,7 +153,7 @@ public class Launcher extends AbstractShellPackagePluginFunctionalTest {
     }
 
 
-    private String getLauncherStdOut(String packageFileName, String... arguments) throws IOException {
+    private String getLauncherStdOut(String packageFileName, String... arguments) throws IOException, InterruptedException {
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
         new SystemUtil.ProcessExecutor(concat(dispenserFile(packageFileName).getAbsolutePath(), arguments))
             .output(output)

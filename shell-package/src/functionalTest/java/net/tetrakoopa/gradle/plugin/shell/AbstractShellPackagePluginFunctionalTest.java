@@ -22,6 +22,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import net.tetrakoopa.gradle.plugin.common.IOUtil;
 
 
@@ -30,7 +33,10 @@ public class AbstractShellPackagePluginFunctionalTest {
 	protected static final File projectsDir = new File("build/functionalTest");
 
 	protected File projectDir;
-    protected File buildDir;
+
+    @Getter(AccessLevel.PUBLIC)
+    @Accessors(fluent = true)
+    private File buildDir;
 
 	protected TestData testData;
 
