@@ -18,7 +18,7 @@ group = 'com.github.martin-der'
 
 gradlePlugin {
     plugins {
-        greeting {
+        shellPackage {
             id = 'shell-package'
             implementationClass = 'net.tetrakoopa.gradle.plugin.shell.ShellPackagePlugin'
         }
@@ -54,7 +54,23 @@ def functionalTestTask = tasks.register('functionalTest', Test) {
     testClassesDirs = functionalTest.output.classesDirs
     classpath = configurations[functionalTest.runtimeClasspathConfigurationName] + functionalTest.output
 }
-
 tasks.check.configure {
     dependsOn(functionalTestTask)
 }
+
+// Fix : Cleanup by renaming gralde files after tests are done so VScode doesn't get confused when scaning the project
+tasks.register('cleanFunctionalTestBuildFiles') {
+    doLast {
+        fileTree("$buildDir/functionalTest/packaage").matching {
+            include '**/build.gradle'
+            include '**/settings.gradle'
+        }.each { f ->
+            f.renameTo(new File(f.parentFile, 'not-a-'+f.name))
+        }
+    }
+}
+tasks.named('functionalTest') {
+    finalizedBy('cleanFunctionalTestBuildFiles')
+}
+
+
