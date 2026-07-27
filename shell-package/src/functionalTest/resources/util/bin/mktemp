@@ -1,0 +1,6 @@
+#!/bin/bash
+set -eu
+
+SCRIPT_PATH=$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")
+
+"$(dirname "${SCRIPT_PATH}")/../mocked-mktemp.sh" "${@}"

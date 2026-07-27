@@ -12,7 +12,6 @@ import java.nio.charset.StandardCharsets;
 import org.gradle.testkit.runner.BuildResult;
 import org.junit.Test;
 import net.tetrakoopa.gradle.plugin.common.SystemUtil;
-import net.tetrakoopa.gradle.plugin.common.SystemUtil.ChrootedScriptExecutor;
 import net.tetrakoopa.gradle.plugin.shell.AbstractShellPackagePluginFunctionalTest;
 
 public class Launcher extends AbstractShellPackagePluginFunctionalTest {
@@ -101,17 +100,17 @@ public class Launcher extends AbstractShellPackagePluginFunctionalTest {
                 export dog
                 """);
         assertTrue("Dispenser file exists", dispenserFileExists("foobar.sh"));
-        ChrootedScriptExecutor executor = new SystemUtil.ChrootedScriptExecutor(buildDir(), "shell/foobar.sh", "launch");
-        executor.grabOutput().grabError();
-        int result = executor.executeScript(null);
-        System.out.println("Output :\n"+executor.grabbedOutput());
-        System.out.println("Error :\n"+executor.grabbedError());
+        // assertEquals("Stdout output of the launcher script is what's expected", """
+        //         There was a tiger named 'Hobbes'
+        //         and a dog named 'Snoopy'.
+        //         """,
+        //     getLauncherStdOut("foobar.sh", "launch"));
+        final var execution = executeLauncherMocked("foobar.sh", "launch");
         assertEquals("Stdout output of the launcher script is what's expected", """
                 There was a tiger named 'Hobbes'
                 and a dog named 'Snoopy'.
                 """,
-            executor.grabbedOutput());
-
+            execution.executor.grabbedOutput());
     }
 
     @Test

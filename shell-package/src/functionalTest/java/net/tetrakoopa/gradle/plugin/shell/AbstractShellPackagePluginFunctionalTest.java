@@ -6,12 +6,14 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -23,9 +25,11 @@ import org.junit.Rule;
 import org.junit.rules.TestName;
 
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import net.tetrakoopa.gradle.plugin.common.IOUtil;
+import net.tetrakoopa.gradle.plugin.common.SystemUtil;
 
 
 public class AbstractShellPackagePluginFunctionalTest {
@@ -43,6 +47,12 @@ public class AbstractShellPackagePluginFunctionalTest {
     protected static class TestData {
         String dispenser_sh;
         String main_script_sh;
+    }
+
+    @AllArgsConstructor
+    public static class ExecutorAndResult {
+        public final SystemUtil.TestMockedExecutor executor;
+        public final int result;
     }
 
     @Rule
@@ -68,6 +78,11 @@ public class AbstractShellPackagePluginFunctionalTest {
             IOUtil.deleteDirectory(projectDir);
         }
         Files.createDirectories(projectsDir.toPath());
+
+        final File rootDirectory = new File(buildDir, "root");
+        Files.createDirectories(rootDirectory.toPath());
+        Files.createDirectories(new File(rootDirectory, "tmp").toPath());
+
         testData = new TestData();
     }
 
@@ -211,6 +226,17 @@ public class AbstractShellPackagePluginFunctionalTest {
 		if (projectName.contains("/")) throw new IllegalArgumentException("'projectName' cannot contains any '/'");
 		return new File("src/functionalTest/resources/project.d/"+projectName+"/"+resourcePath);
 	}
+
+    protected ExecutorAndResult executeLauncherMocked(String script, String... arguments) throws IOException, InterruptedException {
+        return executeLauncherMocked(null, script, arguments);
+    }
+    protected ExecutorAndResult executeLauncherMocked(Consumer<OutputStream> stdinConsumer, String script, String... arguments) throws IOException, InterruptedException {
+        File resourceDirectory = new File("src/functionalTest/resources");
+        SystemUtil.TestMockedExecutor executor = new SystemUtil.TestMockedExecutor(resourceDirectory, buildDir(), "shell/dispenser/"+script, arguments);
+        executor.grabOutput().grabError();
+        final int result = executor.executeScript(stdinConsumer);
+        return new ExecutorAndResult(executor, result);
+    }
 
 
     private static boolean isInSamePackageOrSubPackage(String[] thispackage, String[] rootPackage) {

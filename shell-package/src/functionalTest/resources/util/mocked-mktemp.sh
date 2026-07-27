@@ -93,7 +93,7 @@ done
 
 # Debug output
 if [[ "$VERBOSE" == "true" ]]; then
-    echo "DEBUG: TU_TEMP_DIR=${TU_TEMP_DIR:-/tmp}" >&2
+    echo "DEBUG: TU_TEMP_DIR=${TU_TEMP_DIR}" >&2
     echo "DEBUG: TEMPLATE=$TEMPLATE" >&2
     echo "DEBUG: TEMP_DIR=$TEMP_DIR" >&2
     echo "DEBUG: DRY_RUN=$DRY_RUN" >&2

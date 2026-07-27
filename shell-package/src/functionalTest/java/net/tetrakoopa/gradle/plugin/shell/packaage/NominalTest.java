@@ -2,7 +2,6 @@ package net.tetrakoopa.gradle.plugin.shell.packaage;
 
 import org.junit.Test;
 
-import net.tetrakoopa.gradle.plugin.common.ChrootExecutor;
 import net.tetrakoopa.gradle.plugin.shell.AbstractShellPackagePluginFunctionalTest;
 
 import static org.junit.Assert.assertEquals;

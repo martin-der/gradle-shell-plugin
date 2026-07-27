@@ -9,7 +9,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -34,23 +36,31 @@ public class SystemUtil {
 		private OutputStream error;
 		private Charset grabbedErrorCharset;
 
+		private final Map<String, String> environment = new HashMap<>();
+
 		public ProcessExecutor(String... command) {
 			this.command = command;
 		}
 
+		public E environment(String key, String value) {
+			this.environment.put(key, value);
+			return thisE();
+		}
+
+
 		public E output(OutputStream output) {
 			this.output = output;
-			return (E)this;
+			return thisE();
 		}
 		public E error(OutputStream error) {
 			this.error = error;
-			return (E)this;
+			return thisE();
 		}
 
 		public E grabOutput(Charset charset) {
 			this.output = new ByteArrayOutputStream();
 			this.grabbedOutputCharset = charset;
-			return (E)this;
+			return thisE();
 		}
 		public E grabOutput() {
 			return grabOutput(StandardCharsets.UTF_8);
@@ -64,7 +74,7 @@ public class SystemUtil {
 		public E grabError(Charset charset) {
 			this.error = new ByteArrayOutputStream();
 			this.grabbedErrorCharset = charset;
-			return (E)this;
+			return thisE();
 		}
 		public E grabError() {
 			return grabError(StandardCharsets.UTF_8);
@@ -82,8 +92,13 @@ public class SystemUtil {
 			return run(null);
 		}
 		public int run(Consumer<OutputStream> stdinConsumer) throws IOException, InterruptedException {
-		 
+
 			final ProcessBuilder builder = new ProcessBuilder(command);
+
+			for (final var environmentEntry : environment.entrySet()) {
+				builder.environment().put(environmentEntry.getKey(), environmentEntry.getValue());
+			}
+
 			final Process process = builder.start();
 
 			final OutputStream stdin = process.getOutputStream();
@@ -111,6 +126,7 @@ public class SystemUtil {
 			if (stdinConsumer != null) {
 				stdinConsumer.accept(stdin);
 			}
+			stdin.close();
 
 			boolean finished = process.waitFor(10, TimeUnit.SECONDS);
 
@@ -125,6 +141,39 @@ public class SystemUtil {
 
 			throw new InternalError("Process should not be running");
 		}
+
+		private E thisE() {
+			@SuppressWarnings("unchecked")
+			final E thisAsE = (E)this;
+			return thisAsE;
+		}
+
+	}
+
+
+
+	public static class TestMockedExecutor extends ProcessExecutor<TestMockedExecutor> {
+
+
+		private final File buildDirectory;
+
+		public TestMockedExecutor(File resourcesDirectory, File buildDirectory, String scriptPath, String... arguments) {
+			super(buildCommand(resourcesDirectory, buildDirectory, scriptPath, arguments));
+			this.buildDirectory = buildDirectory;
+		}
+
+		public int executeScript(Consumer<OutputStream> stdinConsumer) throws IOException, InterruptedException {
+			environment("TU_TEMP_DIR", new File(buildDirectory, "root/tmp").getAbsolutePath());
+			return run(stdinConsumer);
+		}
+
+		private static String[] buildCommand(File resourcesDirectory, File buildDirectory, String scriptPath, String... arguments) {
+			final List<String> command = new ArrayList<>();
+			command.add(new File(resourcesDirectory, "util/execute-with-test-setup.sh").getAbsolutePath());
+			command.add(new File(buildDirectory, scriptPath).getAbsolutePath());
+			command.addAll(Arrays.asList(arguments));
+			return command.toArray(String[]::new);
+		}		
 	}
 
 	public static class ChrootedScriptExecutor extends ProcessExecutor<ChrootedScriptExecutor> {
