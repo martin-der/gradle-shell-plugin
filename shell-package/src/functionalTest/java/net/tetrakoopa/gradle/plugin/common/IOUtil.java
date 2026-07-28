@@ -30,7 +30,6 @@ public class IOUtil {
 			}
 			return;
 		}
-		System.out.println("Deleting '"+path.toFile().getAbsolutePath()+"'");
 		try (Stream<Path> paths = Files.walk(path)) {
 			paths.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
 		}

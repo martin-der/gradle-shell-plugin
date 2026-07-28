@@ -6,6 +6,8 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 
@@ -100,17 +102,17 @@ public class Launcher extends AbstractShellPackagePluginFunctionalTest {
                 export dog
                 """);
         assertTrue("Dispenser file exists", dispenserFileExists("foobar.sh"));
-        // assertEquals("Stdout output of the launcher script is what's expected", """
-        //         There was a tiger named 'Hobbes'
-        //         and a dog named 'Snoopy'.
-        //         """,
-        //     getLauncherStdOut("foobar.sh", "launch"));
-        final var execution = executeLauncherMocked("foobar.sh", "launch");
+
+
+        final ExecutorAndResult execution = executeLauncherMocked("foobar.sh", "launch");
+        assertEquals("script exited with 0", 0, execution.result);
         assertEquals("Stdout output of the launcher script is what's expected", """
                 There was a tiger named 'Hobbes'
                 and a dog named 'Snoopy'.
                 """,
             execution.executor.grabbedOutput());
+        assertEquals("Stderr output of the launcher script is empty", "",
+            execution.executor.grabbedError());
     }
 
     @Test
@@ -168,6 +170,7 @@ public class Launcher extends AbstractShellPackagePluginFunctionalTest {
         System.arraycopy(t2, 0, f, t1.length, t2.length);
         return f;
     }
+
     @SafeVarargs
     public static final <T> T[] concat(T t, T... t2) {
         @SuppressWarnings("unchecked")

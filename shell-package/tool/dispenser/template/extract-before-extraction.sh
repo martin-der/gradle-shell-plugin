@@ -9,7 +9,7 @@ if [ "x${MDU_SD_PERSISTENT_TEMP_FOLDER:-}" != "x" ] ; then
 else
 	declare -r MDU_SD_USE_PERSISTENT_TEMP_DIRECTORY=0
 
-	MDU_SD_INSTALL_TEMP_DIR=`mktemp --tmpdir -d mdu-sp-dispenser.XXXXXXXXXXXXXXXXXXXX` || exit 1
+	MDU_SD_INSTALL_TEMP_DIR=`mktemp -d mdu-sp-dispenser.XXXXXXXXXXXXXXXXXXXX` || exit 1
 fi
 
 declare -r MDU_SD_PERSISTENT_TEMP_DIRECTORY_KEEP_LOCK="${MDU_SD_INSTALL_TEMP_DIR}/keep-directory"

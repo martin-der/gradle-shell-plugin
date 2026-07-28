@@ -53,6 +53,9 @@ configurations[functionalTest.annotationProcessorConfigurationName].extendsFrom(
 def functionalTestTask = tasks.register('functionalTest', Test) {
     testClassesDirs = functionalTest.output.classesDirs
     classpath = configurations[functionalTest.runtimeClasspathConfigurationName] + functionalTest.output
+    // testLogging {
+    //     showStandardStreams = true
+    // }
 }
 tasks.check.configure {
     dependsOn(functionalTestTask)
