@@ -123,7 +123,7 @@ fancy_checkbox() {
 
 	# ---- draw helpers ----
 	__fancy_checkbox_draw_row() {
-		local i="$1"
+		local i="$1" j
 		local sc=(${FANCY_STYLE_SELECTION_COLOR[@]})
 		local lc=(${FANCY_STYLE_LABEL_COLOR[@]})
 		local label="${labels[$i]}"
@@ -131,6 +131,8 @@ fancy_checkbox() {
 		[ "${selected[$i]:-0}" -eq 1 ] && check="x"
 
 		label=$(__fancy_checkbox_truncate "$label" "$max_label")
+		local pad=$((width - 4 - ${#label}))
+		[ "$pad" -lt 0 ] && pad=0
 
 		fancy_move "$((content_start+i))" "$start_col"
 
@@ -138,6 +140,7 @@ fancy_checkbox() {
 			[ ${#sc[@]} -ge 3 ] && fancy_bg "${sc[@]}"
 			[ ${#lc[@]} -ge 3 ] && fancy_fg "${lc[@]}"
 			echo -n "[$check] $label"
+			for ((j=0; j<pad; j++)); do echo -n " "; done
 			fancy_reset
 		else
 			echo -n "["
@@ -149,6 +152,7 @@ fancy_checkbox() {
 				echo -n "$check"
 			fi
 			echo -n "] $label"
+			for ((j=0; j<pad; j++)); do echo -n " "; done
 		fi
 	}
 
@@ -210,6 +214,10 @@ fancy_checkbox() {
 				;;
 		esac
 	done
+
+	# ---- final draw: show the whole component once more without highlight ----
+	cursor_row=-1
+	__fancy_checkbox_draw_widget
 
 	# ---- build result ----
 	local __result="" first=1
