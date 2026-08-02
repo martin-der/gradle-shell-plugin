@@ -4,6 +4,54 @@
 import os, pty, time, select, sys, re
 
 
+def read_available(master, timeout=0.02):
+    """Read any pending PTY output for up to `timeout` seconds."""
+    out = b""
+    end = time.time() + timeout
+    while time.time() < end:
+        r, w, e = select.select([master], [], [], 0.01)
+        if not r:
+            continue
+        try:
+            d = os.read(master, 4096)
+            if not d:
+                break
+            out += d
+        except Exception:
+            break
+    return out
+
+
+def wait_for_draw(master, deadline=8.0):
+    """Wait until the widget has emitted its cursor query and then gone quiet.
+
+    fancy_get_cursor emits ESC [ 6 n right before the widget draws its rows
+    and blocks in fancy_read_key, so seeing that query followed by a short
+    quiet period means the keys we send next will be consumed by the widget
+    instead of by fancy_get_cursor's blind read (which otherwise makes the
+    tests timing-flaky under load).
+    """
+    acc = b""
+    drawn = False
+    quiet_start = None
+    end = time.time() + deadline
+    while time.time() < end:
+        chunk = read_available(master, 0.02)
+        if chunk:
+            acc += chunk
+            if not drawn and re.search(rb'\x1b\[6n', acc):
+                drawn = True
+            quiet_start = None
+        elif drawn:
+            if quiet_start is None:
+                quiet_start = time.time()
+            elif time.time() - quiet_start > 0.15:
+                return acc
+    if not drawn:
+        raise RuntimeError("widget cursor query never appeared")
+    raise RuntimeError("widget output never went quiet after initial draw")
+
+
 def run_test(keys, setup_cmds="", width=30):
     """Run fancy_input in a PTY, send each key atomically, return (exit_code, var_value).
 
@@ -36,7 +84,7 @@ def run_test(keys, setup_cmds="", width=30):
         os.write(master, bytes([ch]))
         time.sleep(0.01)
 
-    time.sleep(0.5)
+    acc = wait_for_draw(master)
 
     for key in keys:
         os.write(master, key)
@@ -44,7 +92,7 @@ def run_test(keys, setup_cmds="", width=30):
 
     time.sleep(0.4)
 
-    output = b""
+    output = acc
     while True:
         r, w, e = select.select([master], [], [], 0.5)
         if not r:
@@ -146,7 +194,12 @@ def main():
     for name, keys, setup, width, exp_exit, exp_val in tests:
         if test_filter and test_filter not in name:
             continue
-        exit_code, value, raw = run_test(keys, setup, width)
+        try:
+            exit_code, value, raw = run_test(keys, setup, width)
+        except Exception as exc:
+            stats["failed"] += 1
+            print(f"FAIL: {name} \u2014 harness error: {exc}")
+            continue
         check(name, exp_exit, exp_val, exit_code, value, raw, stats)
 
     total = stats["passed"] + stats["failed"]

@@ -40,6 +40,20 @@ CHECKBOX_PTY_RC=$?
 echo ""
 
 echo "========================================"
+echo "  select.sh — unit tests"
+echo "========================================"
+bash test/select/select_test.sh
+SELECT_RC=$?
+echo ""
+
+echo "========================================"
+echo "  select.sh — interactive tests"
+echo "========================================"
+bash test/select/select_interactive_test.sh
+SELECT_PTY_RC=$?
+echo ""
+
+echo "========================================"
 echo "  Summary"
 echo "========================================"
 echo "  Core tests:          $([ $CORE_RC -eq 0 ] && echo PASS || echo FAIL)"
@@ -47,6 +61,9 @@ echo "  Input unit tests:    $([ $INPUT_RC -eq 0 ] && echo PASS || echo FAIL)"
 echo "  Input PTY tests:     $([ $PTY_RC -eq 0 ] && echo PASS || echo FAIL)"
 echo "  Checkbox unit tests: $([ $CHECKBOX_RC -eq 0 ] && echo PASS || echo FAIL)"
 echo "  Checkbox PTY tests:  $([ $CHECKBOX_PTY_RC -eq 0 ] && echo PASS || echo FAIL)"
+echo "  Select unit tests:   $([ $SELECT_RC -eq 0 ] && echo PASS || echo FAIL)"
+echo "  Select PTY tests:    $([ $SELECT_PTY_RC -eq 0 ] && echo PASS || echo FAIL)"
 
 [ $CORE_RC -eq 0 ] && [ $INPUT_RC -eq 0 ] && [ $PTY_RC -eq 0 ] \
-&& [ $CHECKBOX_RC -eq 0 ] && [ $CHECKBOX_PTY_RC -eq 0 ]
+&& [ $CHECKBOX_RC -eq 0 ] && [ $CHECKBOX_PTY_RC -eq 0 ] \
+&& [ $SELECT_RC -eq 0 ] && [ $SELECT_PTY_RC -eq 0 ]

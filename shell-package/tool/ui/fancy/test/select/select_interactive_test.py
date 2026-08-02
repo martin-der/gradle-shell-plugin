@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Interactive PTY tests for fancy_checkbox."""
+"""Interactive PTY tests for fancy_select."""
 
 import os, pty, time, select, sys, re
 
@@ -23,13 +23,12 @@ def read_available(master, timeout=0.02):
 
 
 def wait_for_draw(master, deadline=8.0):
-    """Wait until the widget has emitted its cursor query and then gone quiet.
+    """Wait until the widget has emitted its initial draw and then gone quiet.
 
-    fancy_get_cursor emits ESC [ 6 n right before the widget draws its rows
-    and blocks in fancy_read_key, so seeing that query followed by a short
-    quiet period means the keys we send next will be consumed by the widget
-    instead of by fancy_get_cursor's blind read (which otherwise makes the
-    tests timing-flaky under load).
+    The widget draws all rows right before it blocks in fancy_read_key, so a
+    draw marker followed by a short quiet period means keys we send next will
+    be consumed by the widget instead of by fancy_get_cursor's blind read
+    (which otherwise makes the tests timing-flaky under load).
     """
     acc = b""
     drawn = False
@@ -39,7 +38,7 @@ def wait_for_draw(master, deadline=8.0):
         chunk = read_available(master, 0.02)
         if chunk:
             acc += chunk
-            if not drawn and re.search(rb'\x1b\[6n', acc):
+            if not drawn and re.search(rb'\x1b\[[0-9]+;[0-9]+H\(', acc):
                 drawn = True
             quiet_start = None
         elif drawn:
@@ -48,17 +47,17 @@ def wait_for_draw(master, deadline=8.0):
             elif time.time() - quiet_start > 0.15:
                 return acc
     if not drawn:
-        raise RuntimeError("widget cursor query never appeared")
+        raise RuntimeError("widget initial draw never appeared")
     raise RuntimeError("widget output never went quiet after initial draw")
 
 
 def run_test(keys, setup_cmds="", width=30, first_arg="choices"):
-    """Run fancy_checkbox in a PTY, send each key atomically, return
+    """Run fancy_select in a PTY, send each key atomically, return
     (exit_code, var_value, decoded_output).
 
     keys is a list of byte strings; each is written in a single write so
     escape sequences (arrows, etc.) arrive within fancy_read_key's timeout.
-    first_arg is passed as the choices argument to fancy_checkbox.
+    first_arg is passed as the choices argument to fancy_select.
     """
     master, slave = pty.openpty()
     pid = os.fork()
@@ -75,9 +74,9 @@ def run_test(keys, setup_cmds="", width=30, first_arg="choices"):
     time.sleep(0.3)
 
     cmd = (
-        'source ./checkbox.sh && '
+        'source ./select.sh && '
         + setup_cmds
-        + 'fancy_checkbox ' + first_arg + ' result ' + str(width) + ' ; '
+        + 'fancy_select ' + first_arg + ' result ' + str(width) + ' ; '
         + 'echo "EXIT=$?" ; '
         + 'echo "VALUE=[$result]"\n'
     )
@@ -146,7 +145,7 @@ def check(name, expected_exit, expected_value, exit_code, value, raw, stats,
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: checkbox_interactive_test.py <fancy_dir> [test_filter]", file=sys.stderr)
+        print("Usage: select_interactive_test.py <fancy_dir> [test_filter]", file=sys.stderr)
         sys.exit(1)
 
     stats = {"passed": 0, "failed": 0}
@@ -162,20 +161,19 @@ def main():
 
     # (name, keys, setup, width, expected_exit, expected_value, expected_out)
     tests = [
-        # Basic selection
+        # Basic selection (single select: one value only)
         ("no-selection",        [ENTER],                          CHOICES, 30, "0", "",       None),
         ("select-first",        [SPACE, ENTER],                   CHOICES, 30, "0", "foo",    None),
         ("select-second",       [DOWN, SPACE, ENTER],             CHOICES, 30, "0", "bar",    None),
-        ("select-both",         [SPACE, DOWN, SPACE, ENTER],      CHOICES, 30, "0", "foo,bar", None),
-        ("deselect",            [SPACE, DOWN, SPACE, UP, SPACE, ENTER],
-                                                                CHOICES, 30, "0", "bar",    None),
+        ("switch-selection",    [SPACE, DOWN, SPACE, ENTER],      CHOICES, 30, "0", "bar",    None),
+        ("toggle-off",          [SPACE, SPACE, ENTER],            CHOICES, 30, "0", "",       None),
         # Up arrow at top and down arrow at bottom are no-ops
         ("up-at-top",           [UP, SPACE, ENTER],               CHOICES, 30, "0", "foo",    None),
         ("down-at-bottom",      [DOWN, DOWN, SPACE, ENTER],       CHOICES, 30, "0", "bar",    None),
 
         # Initial selection from the result variable
         ("initial-selection",   [ENTER],                          CHOICES + "result='bar' && ", 30, "0", "bar", None),
-        ("initial-both",        [ENTER],                          CHOICES + "result='foo,bar' && ", 30, "0", "foo,bar", None),
+        ("initial-then-switch", [DOWN, SPACE, ENTER],             CHOICES + "result='foo' && ", 30, "0", "bar", None),
         ("initial-then-toggle", [SPACE, ENTER],                   CHOICES + "result='foo' && ", 30, "0", "", None),
 
         # Escape leaves the result variable unchanged
@@ -183,7 +181,7 @@ def main():
         ("escape-keeps-initial",[SPACE, DOWN, SPACE, ESC],        CHOICES + "result='bar' && ", 30, "1", "bar", None),
 
         # Long labels are truncated with the fancy indicator
-        ("truncate-label",      [SPACE, DOWN, SPACE, ENTER],      LONG, 14, "0", "aa,bb", "…"),
+        ("truncate-label",      [SPACE, DOWN, SPACE, ENTER],      LONG, 14, "0", "bb", "…"),
     ]
 
     test_filter = sys.argv[2] if len(sys.argv) > 2 else ""
