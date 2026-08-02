@@ -54,16 +54,33 @@ SELECT_PTY_RC=$?
 echo ""
 
 echo "========================================"
+echo "  demo.sh — chained components"
+echo "========================================"
+bash test/demo/demo_interactive_test.sh
+DEMO_RC=$?
+echo ""
+
+echo "========================================"
+echo "  Common behavior — cursor position"
+echo "========================================"
+bash test/cursor_position_test.sh
+CURSOR_RC=$?
+echo ""
+
+echo "========================================"
 echo "  Summary"
 echo "========================================"
-echo "  Core tests:          $([ $CORE_RC -eq 0 ] && echo PASS || echo FAIL)"
-echo "  Input unit tests:    $([ $INPUT_RC -eq 0 ] && echo PASS || echo FAIL)"
-echo "  Input PTY tests:     $([ $PTY_RC -eq 0 ] && echo PASS || echo FAIL)"
-echo "  Checkbox unit tests: $([ $CHECKBOX_RC -eq 0 ] && echo PASS || echo FAIL)"
-echo "  Checkbox PTY tests:  $([ $CHECKBOX_PTY_RC -eq 0 ] && echo PASS || echo FAIL)"
-echo "  Select unit tests:   $([ $SELECT_RC -eq 0 ] && echo PASS || echo FAIL)"
-echo "  Select PTY tests:    $([ $SELECT_PTY_RC -eq 0 ] && echo PASS || echo FAIL)"
+echo "  Core tests:            $([ $CORE_RC -eq 0 ] && echo PASS || echo FAIL)"
+echo "  Input unit tests:      $([ $INPUT_RC -eq 0 ] && echo PASS || echo FAIL)"
+echo "  Input PTY tests:       $([ $PTY_RC -eq 0 ] && echo PASS || echo FAIL)"
+echo "  Checkbox unit tests:   $([ $CHECKBOX_RC -eq 0 ] && echo PASS || echo FAIL)"
+echo "  Checkbox PTY tests:    $([ $CHECKBOX_PTY_RC -eq 0 ] && echo PASS || echo FAIL)"
+echo "  Select unit tests:     $([ $SELECT_RC -eq 0 ] && echo PASS || echo FAIL)"
+echo "  Select PTY tests:      $([ $SELECT_PTY_RC -eq 0 ] && echo PASS || echo FAIL)"
+echo "  Demo PTY tests:        $([ $DEMO_RC -eq 0 ] && echo PASS || echo FAIL)"
+echo "  Cursor position tests: $([ $CURSOR_RC -eq 0 ] && echo PASS || echo FAIL)"
 
 [ $CORE_RC -eq 0 ] && [ $INPUT_RC -eq 0 ] && [ $PTY_RC -eq 0 ] \
 && [ $CHECKBOX_RC -eq 0 ] && [ $CHECKBOX_PTY_RC -eq 0 ] \
-&& [ $SELECT_RC -eq 0 ] && [ $SELECT_PTY_RC -eq 0 ]
+&& [ $SELECT_RC -eq 0 ] && [ $SELECT_PTY_RC -eq 0 ] \
+&& [ $DEMO_RC -eq 0 ] && [ $CURSOR_RC -eq 0 ]

@@ -75,9 +75,9 @@ fancy_get_cursor() {
 		[ "$char" = "R" ] && break
 	done
 	if [[ "$resp" =~ \[([0-9]+)\;([0-9]+)R ]]; then
-		echo "$((BASH_REMATCH[1]-1)) $((BASH_REMATCH[2]-1))"
+		echo "${BASH_REMATCH[1]} ${BASH_REMATCH[2]}"
 	else
-		echo "0 0"
+		echo "1 1"
 		return 1
 	fi
 }

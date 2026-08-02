@@ -201,8 +201,8 @@ fancy_select() {
 	# ---- cleanup ----
 	fancy_cleanup
 
-	# Move cursor below the list
-	fancy_move "$((content_start+n))" "$start_col"
+	# Move cursor to the beginning of the line just after the last row
+	fancy_move "$((content_start+n))" 1
 
 	if [ "$__exit" -eq 0 ]; then
 		printf -v "$result_varname" "%s" "$__result"

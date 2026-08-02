@@ -271,8 +271,8 @@ fancy_input() {
 	# ---- cleanup ----
 	fancy_cleanup
 
-	# Move cursor below the widget
-	fancy_move "$((start_row+3))" "$start_col"
+	# Move cursor to the beginning of the line just after the widget
+	fancy_move "$((start_row+3))" 1
 
 	if [ $__exit -eq 0 ]; then
 		printf -v "$varname" "%s" "$text"
