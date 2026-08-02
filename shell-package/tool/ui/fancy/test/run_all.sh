@@ -68,6 +68,13 @@ CURSOR_RC=$?
 echo ""
 
 echo "========================================"
+echo "  Snapshots — rendering regression"
+echo "========================================"
+bash test/snapshot/snapshot_test.sh
+SNAPSHOT_RC=$?
+echo ""
+
+echo "========================================"
 echo "  Summary"
 echo "========================================"
 echo "  Core tests:            $([ $CORE_RC -eq 0 ] && echo PASS || echo FAIL)"
@@ -79,8 +86,9 @@ echo "  Select unit tests:     $([ $SELECT_RC -eq 0 ] && echo PASS || echo FAIL)
 echo "  Select PTY tests:      $([ $SELECT_PTY_RC -eq 0 ] && echo PASS || echo FAIL)"
 echo "  Demo PTY tests:        $([ $DEMO_RC -eq 0 ] && echo PASS || echo FAIL)"
 echo "  Cursor position tests: $([ $CURSOR_RC -eq 0 ] && echo PASS || echo FAIL)"
+echo "  Snapshot tests:        $([ $SNAPSHOT_RC -eq 0 ] && echo PASS || echo FAIL)"
 
 [ $CORE_RC -eq 0 ] && [ $INPUT_RC -eq 0 ] && [ $PTY_RC -eq 0 ] \
 && [ $CHECKBOX_RC -eq 0 ] && [ $CHECKBOX_PTY_RC -eq 0 ] \
 && [ $SELECT_RC -eq 0 ] && [ $SELECT_PTY_RC -eq 0 ] \
-&& [ $DEMO_RC -eq 0 ] && [ $CURSOR_RC -eq 0 ]
+&& [ $DEMO_RC -eq 0 ] && [ $CURSOR_RC -eq 0 ] && [ $SNAPSHOT_RC -eq 0 ]
