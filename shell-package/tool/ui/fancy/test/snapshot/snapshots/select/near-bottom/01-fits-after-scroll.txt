@@ -1,0 +1,8 @@
+( ) Sun
+( ) Moon
+( ) Star
+
+colors (b=border l=label c=counter s=selection .=default)
+ssssssssssssssssssssssssss
+..........................
+..........................

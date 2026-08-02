@@ -106,6 +106,30 @@ fancy_move() {
 	echo -en "\e[${1};${2}H"
 }
 
+# @description Scroll the terminal so a widget of `count` lines whose top row
+#              would be `top` is fully visible. When the widget extends past
+#              the last line of the terminal, the screen is scrolled up by the
+#              required amount (CSI n S), leaving room at the bottom.
+# @arg $1 int  Row where the widget would start (1-based)
+# @arg $2 int  Number of lines the widget needs
+# @stdout The scroll escape sequence, if scrolling was needed. The adjusted
+#         starting row is stored in FANCY_FIT_TOP (kept out of stdout so the
+#         escape stays part of the draw stream).
+fancy_fit_lines() {
+	local top="$1" count="$2" size rows overflow
+	FANCY_FIT_TOP="$top"
+	size=$(stty size 2>/dev/null || true)
+	rows="${size%% *}"
+	[ -n "$rows" ] && [ "$rows" -gt 0 ] || return 0
+	overflow=$(( top + count - 1 - rows ))
+	if [ "$overflow" -gt 0 ]; then
+		echo -en "\e[${overflow}S"
+		top=$(( top - overflow ))
+		[ "$top" -lt 1 ] && top=1
+		FANCY_FIT_TOP="$top"
+	fi
+}
+
 # ---- Line operations ----
 
 fancy_clear_line() {

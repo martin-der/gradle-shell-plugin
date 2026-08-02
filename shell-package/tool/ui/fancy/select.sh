@@ -95,6 +95,9 @@ fancy_select() {
 	[ "$start_row" -lt 1 ] && start_row=1
 	[ "$start_col" -lt 1 ] && start_col=1
 
+	fancy_fit_lines "$start_row" "$n"
+	start_row="$FANCY_FIT_TOP"
+
 	local max_label=$((width - 4))
 	[ "$max_label" -lt 1 ] && max_label=1
 
@@ -201,7 +204,11 @@ fancy_select() {
 	# ---- cleanup ----
 	fancy_cleanup
 
-	# Move cursor to the beginning of the line just after the last row
+	# Move cursor to the beginning of the line just after the last row. When
+	# the list ends on the last line of the terminal a plain cursor move would
+	# clamp to that line (leaving the cursor on the last row), so scroll first
+	# to make room for the line below the list.
+	fancy_fit_lines "$((content_start+n))" 1
 	fancy_move "$((content_start+n))" 1
 
 	if [ "$__exit" -eq 0 ]; then

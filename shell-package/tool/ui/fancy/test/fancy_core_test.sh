@@ -92,6 +92,12 @@ assert_eq "fancy_move" "${E}[5;10H" "$out"
 out=$(fancy_move 1 1)
 assert_eq "fancy_move (1,1)" "${E}[1;1H" "$out"
 
+echo "=== fancy_fit_lines ==="
+
+# No TTY (or a tall enough one): no scrolling, top unchanged
+fancy_fit_lines 5 3
+assert_eq "fits without scroll" "5" "$FANCY_FIT_TOP"
+
 echo "=== fancy_clear_line ==="
 
 out=$(fancy_clear_line)

@@ -117,6 +117,11 @@ fancy_checkbox() {
 	local box_label_display=""
 	[ -n "$box_label" ] && box_label_display=$(__fancy_checkbox_truncate "$box_label" "$width")
 
+	local height=$n
+	[ -n "$box_label_display" ] && height=$((n + 1))
+	fancy_fit_lines "$start_row" "$height"
+	start_row="$FANCY_FIT_TOP"
+
 	local cursor_row=0
 	local content_start=$start_row
 	[ -n "$box_label_display" ] && content_start=$((start_row+1))
@@ -235,7 +240,11 @@ fancy_checkbox() {
 	# ---- cleanup ----
 	fancy_cleanup
 
-	# Move cursor to the beginning of the line just after the last row
+	# Move cursor to the beginning of the line just after the last row. When
+	# the box ends on the last line of the terminal a plain cursor move would
+	# clamp to that line (leaving the cursor on the bottom border), so scroll
+	# first to make room for the line below the box.
+	fancy_fit_lines "$((content_start+n))" 1
 	fancy_move "$((content_start+n))" 1
 
 	if [ "$__exit" -eq 0 ]; then

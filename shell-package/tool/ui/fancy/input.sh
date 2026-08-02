@@ -41,6 +41,8 @@ fancy_input() {
 	local start_row="${pos% *}" start_col="${pos#* }"
 	[ "$start_row" -lt 1 ] && start_row=1
 	[ "$start_col" -lt 1 ] && start_col=1
+	fancy_fit_lines "$start_row" 3
+	start_row="$FANCY_FIT_TOP"
 
 	# ---- border chars ----
 	local chars=($(fancy_get_border_chars "$FANCY_STYLE_BORDER"))
@@ -66,7 +68,7 @@ fancy_input() {
 		[ -n "$label" ] && label_extra=$((3 + ${#label}))
 		local top_fill=$((width - 3 - label_extra))
 		for ((i=0; i<top_fill; i++)); do echo -n "$h"; done
-		echo "$tr"
+		echo -n "$tr"
 
 		# Content line (empty initially, will be filled by redraw)
 		fancy_move "$((start_row+1))" "$start_col"
@@ -78,7 +80,7 @@ fancy_input() {
 		fancy_move "$((start_row+2))" "$start_col"
 		echo -n "$bl"
 		for ((i=0; i<width-2; i++)); do echo -n "$h"; done
-		echo "$br"
+		echo -n "$br"
 
 		fancy_reset
 	}
@@ -97,6 +99,11 @@ fancy_input() {
 		local indicator="$FANCY_STYLE_INDICATOR"
 		local cw=$content_width len=${#text}
 		local nl=0 nr=0
+
+		# Re-fit in case the terminal scrolled or was resized since the last
+		# draw; keeps the whole box on screen on every redraw.
+		fancy_fit_lines "$start_row" 3
+		start_row="$FANCY_FIT_TOP"
 
 		[ $len -gt $cw ] && {
 			[ $offset -gt 0 ] && nl=1
@@ -151,7 +158,7 @@ fancy_input() {
 			[ ${#bc[@]} -ge 3 ] && fancy_fg "${bc[@]}"
 		fi
 		for ((i=0; i<right_fill; i++)); do echo -n "$h"; done
-		echo "$br"
+		echo -n "$br"
 		fancy_reset
 
 		# Position cursor
@@ -271,7 +278,11 @@ fancy_input() {
 	# ---- cleanup ----
 	fancy_cleanup
 
-	# Move cursor to the beginning of the line just after the widget
+	# Move cursor to the beginning of the line just after the widget. When the
+	# box ends on the last line of the terminal a plain cursor move would clamp
+	# to that line (leaving the cursor on the bottom border), so scroll first
+	# to make room for the line below the box.
+	fancy_fit_lines "$((start_row+3))" 1
 	fancy_move "$((start_row+3))" 1
 
 	if [ $__exit -eq 0 ]; then

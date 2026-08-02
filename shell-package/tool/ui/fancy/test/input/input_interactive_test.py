@@ -111,22 +111,18 @@ def run_test(keys, setup_cmds="", width=30):
 
     decoded = output.decode('utf-8', errors='replace')
 
-    _strip = lambda s: re.sub(r'\x1b\[[?0-9; ]*[a-zA-Z]', '', s).strip().strip('\r')
     exit_code = ""
     value = ""
 
-    for line in decoded.split('\n'):
-        cleaned = _strip(re.sub(r'\x1b\].*?\x07', '', line))
-        if cleaned.startswith('EXIT='):
-            exit_code = cleaned.split('=', 1)[1].strip()
-            break
+    m = re.search(r'EXIT=(\d+)', decoded)
+    if m:
+        exit_code = m.group(1)
 
-    for line in decoded.split('\n'):
-        cleaned = _strip(re.sub(r'\x1b\].*?\x07', '', line))
-        if cleaned.startswith('VALUE='):
-            val = cleaned.split('=', 1)[1].strip()
-            value = val[1:-1] if val.startswith('[') and val.endswith(']') else val
-            break
+    # The command line itself echoes "VALUE=[$result]", so keep the last match
+    # (the one written after the widget has returned).
+    matches = list(re.finditer(r'VALUE=\[([^\]]*)\]', decoded))
+    if matches:
+        value = matches[-1].group(1)
 
     return exit_code, value, decoded
 

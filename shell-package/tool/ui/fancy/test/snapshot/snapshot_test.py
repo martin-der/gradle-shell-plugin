@@ -29,11 +29,14 @@ word, and after confirming). Regenerate the snapshots with:
 """
 
 import difflib
+import fcntl
 import os
 import pty
 import re
 import select
+import struct
 import sys
+import termios
 import time
 
 SELECTION = (75, 75, 75)
@@ -96,7 +99,12 @@ class Screen:
                 self.c = 0
                 i += 1
             elif b == 0x0A:
-                self.r += 1
+                if self.r >= self.rows - 1:
+                    # newline on the last row scrolls the viewport up one line
+                    del self.grid[0]
+                    self.grid.append([Cell() for _ in range(self.cols)])
+                else:
+                    self.r += 1
                 i += 1
             elif b == 0x1B:
                 i = self._esc(data, i)
@@ -147,6 +155,17 @@ class Screen:
                 cell.ch = " "
                 cell.fg = None
                 cell.bg = None
+        elif final == "S":  # scroll up n lines: shift content up, blank at bottom
+            n = int(p[0]) if p[0] else 1
+            del self.grid[:n]
+            for _ in range(n):
+                self.grid.append([Cell() for _ in range(self.cols)])
+        elif final == "T":  # scroll down n lines: shift content down, blank at top
+            n = int(p[0]) if p[0] else 1
+            for _ in range(n):
+                self.grid.pop()
+            for _ in range(n):
+                self.grid.insert(0, [Cell() for _ in range(self.cols)])
         elif final == "m":
             self._sgr(p)
 
@@ -203,11 +222,13 @@ def _expand_keys(keys):
     return keys
 
 
-def run_scenario(cmd, steps):
-    """Run `cmd` in a PTY that answers ESC [ 6 n with ESC [ 5 ; 1 R, replay the
-    `steps` (either {"keys": ...} or {"snapshot": label}) and return the list
-    of (label, raw_bytes) captures taken at each snapshot step."""
+def run_scenario(cmd, steps, cursor="5;1"):
+    """Run `cmd` in a PTY (winsize 24x80) that answers ESC [ 6 n with
+    ESC [ <cursor> R, replay the `steps` (either {"keys": ...} or
+    {"snapshot": label}) and return the list of (label, raw_bytes) captures
+    taken at each snapshot step."""
     master, slave = pty.openpty()
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
     pid = os.fork()
     if pid == 0:
         for fd in (0, 1, 2):
@@ -234,7 +255,7 @@ def run_scenario(cmd, steps):
         if chunk:
             acc += chunk
             if not seen and b"\x1b[6n" in acc:
-                os.write(master, b"\x1b[5;1R")
+                os.write(master, b"\x1b[" + cursor.encode() + b"R")
                 seen = True
             quiet_start = None
         elif seen:
@@ -300,8 +321,9 @@ def color_char(cell):
 
 def render_snapshot(raw, width, height, start_row=5):
     """Render the widget box: text rows (right-trimmed) and a full-width
-    per-cell color grid."""
-    screen = Screen()
+    per-cell color grid. The screen matches the PTY winsize (24x80) so that
+    auto-scrolling behaviour at the bottom edge is modelled too."""
+    screen = Screen(rows=24, cols=80)
     screen.feed(raw)
     text_rows = []
     color_rows = []
@@ -461,6 +483,112 @@ SCENARIOS = [
             {"snapshot": "03-after-enter"},
         ],
     },
+    {
+        # Widget starting near the bottom of a 24-line terminal: the terminal
+        # must scroll up one line so the full box stays visible.
+        "name": "input/near-bottom",
+        "cmd": 'source ./input.sh && fancy_input result "Your name" 30 "" ; echo "EXIT=$?"\n',
+        "cursor": "23;1",
+        "top": 22,
+        "width": 30,
+        "height": 3,
+        "expect_scroll": 1,
+        "steps": [
+            {"snapshot": "01-fits-after-scroll"},
+        ],
+    },
+    {
+        # Input at the very bottom of the terminal must not grow by one line
+        # per keystroke: redrawing the content and the bottom border must not
+        # push a newline on the last row (that would auto-scroll the terminal
+        # and leave the previous content behind). The box stays fixed at 3
+        # rows while text is typed.
+        "name": "input/near-bottom-typing",
+        "cmd": 'source ./input.sh && fancy_input result "Your name" 30 "" ; echo "EXIT=$?"\n',
+        "cursor": "23;1",
+        "top": 22,
+        "width": 30,
+        "height": 3,
+        "expect_scroll": 1,
+        "steps": [
+            {"snapshot": "01-initial"},
+            {"keys": "hel"},
+            {"snapshot": "02-after-hel"},
+            {"keys": "lo"},
+            {"snapshot": "03-after-hello"},
+        ],
+    },
+    {
+        # 3-option select starting at row 23 of a 24-line terminal.
+        "name": "select/near-bottom",
+        "cmd": ('source ./select.sh && '
+                'choices=$(printf "sun|Sun\\nmoon|Moon\\nstar|Star") && '
+                'fancy_select "$choices" result 26 ; echo "EXIT=$?"\n'),
+        "cursor": "23;1",
+        "top": 22,
+        "width": 26,
+        "height": 3,
+        "expect_scroll": 1,
+        "steps": [
+            {"snapshot": "01-fits-after-scroll"},
+        ],
+    },
+    {
+        # Input ending on the last line of the terminal: on exit it must
+        # scroll the terminal up one line so the cursor lands on the line
+        # below the box (where the next component starts), instead of staying
+        # clamped on the bottom border where the next component would
+        # overwrite it. Assert the stream contains both the initial fit scroll
+        # and the exit scroll (min_scrolls=2).
+        "name": "input/near-bottom-exit",
+        "cmd": 'source ./input.sh && fancy_input result "Your name" 30 "" ; echo "EXIT=$?"\n',
+        "cursor": "23;1",
+        "top": 20,
+        "width": 30,
+        "height": 3,
+        "expect_scroll": 1,
+        "min_scrolls": 2,
+        "steps": [
+            {"keys": [ENTER]},
+            {"snapshot": "01-after-enter"},
+        ],
+    },
+    {
+        # Select ending on the last line of the terminal: same exit-scroll
+        # behaviour as the input widget.
+        "name": "select/near-bottom-exit",
+        "cmd": ('source ./select.sh && '
+                'choices=$(printf "sun|Sun\\nmoon|Moon\\nstar|Star") && '
+                'fancy_select "$choices" result 26 ; echo "EXIT=$?"\n'),
+        "cursor": "23;1",
+        "top": 20,
+        "width": 26,
+        "height": 3,
+        "expect_scroll": 1,
+        "min_scrolls": 2,
+        "steps": [
+            {"keys": [ENTER]},
+            {"snapshot": "01-after-enter"},
+        ],
+    },
+    {
+        # Checkbox ending on the last line of the terminal: same exit-scroll
+        # behaviour as the input widget.
+        "name": "checkbox/near-bottom-exit",
+        "cmd": ('source ./checkbox.sh && '
+                'choices=$(printf "alpha|Alpha\\nbeta|Beta\\ngamma|Gamma") && '
+                'fancy_checkbox "$choices" result 26 "Pick one" ; echo "EXIT=$?"\n'),
+        "cursor": "22;1",
+        "top": 19,
+        "width": 26,
+        "height": 4,
+        "expect_scroll": 1,
+        "min_scrolls": 2,
+        "steps": [
+            {"keys": [ENTER]},
+            {"snapshot": "01-after-enter"},
+        ],
+    },
 ]
 
 
@@ -483,7 +611,8 @@ def main():
         if name_filter and name_filter not in name:
             continue
         try:
-            snapshots = run_scenario(scenario["cmd"], scenario["steps"])
+            snapshots = run_scenario(scenario["cmd"], scenario["steps"],
+                                     scenario.get("cursor", "5;1"))
         except Exception as exc:
             stats["failed"] += 1
             print(f"FAIL: {name} — harness error: {exc}")
@@ -491,7 +620,25 @@ def main():
 
         for label, raw in snapshots:
             full = f"{name}/{label}"
-            text_rows, color_rows = render_snapshot(raw, scenario["width"], scenario["height"])
+
+            if scenario.get("expect_scroll"):
+                seq = f"\x1b[{scenario['expect_scroll']}S".encode()
+                if seq not in raw:
+                    stats["failed"] += 1
+                    print(f"FAIL: {full} — expected scroll ESC [ {scenario['expect_scroll']} S")
+                    continue
+
+            if scenario.get("min_scrolls"):
+                seq = b"\x1b[1S"
+                if raw.count(seq) < scenario["min_scrolls"]:
+                    stats["failed"] += 1
+                    print(f"FAIL: {full} — expected at least {scenario['min_scrolls']} "
+                          "scrolls of one line in the stream (widget start and exit)")
+                    continue
+
+            text_rows, color_rows = render_snapshot(
+                raw, scenario["width"], scenario["height"],
+                scenario.get("top", 5))
             expected = snapshot_text(text_rows, color_rows)
             path = os.path.join(snap_dir, name, label + ".txt")
 

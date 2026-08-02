@@ -1,0 +1,8 @@
+┌─ Your name ────────────────┐
+│hello                       │
+└────────────────────────────┘
+
+colors (b=border l=label c=counter s=selection .=default)
+bblllllllllllbbbbbbbbbbbbbbbbb
+b............................b
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
