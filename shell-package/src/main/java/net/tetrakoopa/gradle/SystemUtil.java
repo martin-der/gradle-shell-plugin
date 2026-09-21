@@ -10,12 +10,32 @@ import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class SystemUtil {
-	
+
+	public static boolean isWindows() {
+		return System.getProperty("os.name").toLowerCase().contains("win");
+	}
+
+	private static boolean windowsExecutableWarningPrinted = false;
+
+	private static void warnWindowsExecutableNoOp() {
+		if (!windowsExecutableWarningPrinted) {
+			windowsExecutableWarningPrinted = true;
+			Logger.getLogger(SystemUtil.class.getName()).warning(
+				"Running on Windows: makeExecutable is a no-op, file permissions cannot be set."
+			);
+		}
+	}
+
 	public static void makeExecutable(File file, boolean toGroup, boolean toOther) throws IOException {
+		if (isWindows()) {
+			warnWindowsExecutableNoOp();
+			return;
+		}
 		final Path path = file.toPath();
 
 		final Set<PosixFilePermission> permissions = Files.readAttributes(path,PosixFileAttributes.class).permissions();
