@@ -51,7 +51,22 @@ public class SystemUtil {
 		Files.setPosixFilePermissions(path, permissions);
 	}
 
+	private static boolean windowsPermissionsWarningPrinted = false;
+
+	private static void warnWindowsPermissionsDefaults() {
+		if (!windowsPermissionsWarningPrinted) {
+			windowsPermissionsWarningPrinted = true;
+			Logger.getLogger(SystemUtil.class.getName()).warning(
+				"Running on Windows: file permissions are not supported, using default mode 0644."
+			);
+		}
+	}
+
 	public static int getPermissions(Path path) throws IOException {
+		if (isWindows()) {
+			warnWindowsPermissionsDefaults();
+			return 0644;
+		}
 		final PosixFileAttributes attributes = Files.readAttributes(
 			path, 
 			PosixFileAttributes.class
