@@ -96,7 +96,9 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 				write("\nMDU_SD_EOF\n");
 			} else {
 				write("${MDU_SD_DECODE_BASE64} << 'MDU_SD_EOF' > \""+absoluteEscapedPath+"\"\n");
-				write(Base64.getEncoder().encodeToString(Files.newInputStream(absolutePath).readAllBytes()));
+				@Cleanup
+				final InputStream input = Files.newInputStream(absolutePath);
+				write(Base64.getEncoder().encodeToString(input.readAllBytes()));
 				write("\nMDU_SD_EOF\n");
 			}
 			write("\n");

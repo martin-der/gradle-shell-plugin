@@ -167,7 +167,7 @@ public abstract class DispenserTask extends DefaultTask {
 
     private void copyScriptUtils(File explodedDir) throws IOException {
         final File scriptUtilsDir = new File(explodedDir, "util");
-        Files.createDirectory(scriptUtilsDir.toPath());
+        Files.createDirectories(scriptUtilsDir.toPath());
         for (String resourceFileName : List.of("log.sh", "flowui-builder-json.sh", "flowui-dumbcli.sh", "flowui-humbletui.sh", "flowui.sh", "shell-util.sh")) {
             final String resourcePath = "/runtime/"+resourceFileName;
             try {
@@ -177,7 +177,7 @@ public abstract class DispenserTask extends DefaultTask {
                 @Cleanup
                 final var output = new FileOutputStream(new File(scriptUtilsDir, resourceFileName));
 
-                inputStream.transferTo(new FileOutputStream(new File(scriptUtilsDir, resourceFileName)));
+                inputStream.transferTo(output);
             } catch (Exception e) {
                 throw new IOException("Failed to copy '"+resourcePath+"'", e);
             }
