@@ -1,8 +1,0 @@
-┌─ Your name ────────────────┐
-│John Doe                    │
-└────────────────────────────┘
-
-colors (b=border l=label c=counter s=selection .=default)
-bblllllllllllbbbbbbbbbbbbbbbbb
-b............................b
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
