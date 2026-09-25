@@ -189,7 +189,7 @@ public class ShellPackagePlugin implements Plugin<Project> {
 
     private String replaceValues(String string, Internal internal) {
         return string
-            .replace("{{MDU-SD_CONTENT-DIRECTORY}}", "${MDU_DISPENSER_CONTENT_DIRECTORY}");
+            .replace("{{MDU-SD_CONTENT-DIRECTORY}}", "${MDU_SD_DISPENSER_CONTENT_DIRECTORY}");
     }
     
 

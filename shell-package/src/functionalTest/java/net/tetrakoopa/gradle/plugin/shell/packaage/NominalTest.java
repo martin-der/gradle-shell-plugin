@@ -5,6 +5,7 @@ import org.junit.Test;
 import net.tetrakoopa.gradle.plugin.shell.AbstractShellPackagePluginFunctionalTest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -199,5 +200,34 @@ public class NominalTest extends AbstractShellPackagePluginFunctionalTest {
         assertEquals("There is no 'resource/banner.txt'", false, explodedFileExists("resource/banner.txt"));
     }
 
+
+    @Test
+    public void packageUsesUnixPaths() throws IOException {
+
+        copyProjectDirectory("foobar-project", "thingies");
+
+        createProjectFile("settings.gradle", "");
+        createProjectFile("build.gradle",
+        """
+        plugins {
+            id('shell-package')
+        }
+
+        shell_package {
+            source {
+                from ("thingies") {
+                    into "thingies"
+                }
+            }
+        }
+        """);
+
+        buildWithArguments("dispenser");
+
+        final String dispenser = dispenserTextContent("NominalTest---packageUsesUnixPaths.sh");
+        assertTrue("Dispenser uses Unix path separators", dispenser.contains("# File content/thingies/blue/lac.txt"));
+        assertTrue("Dispenser creates nested Unix paths", dispenser.contains("${MDU_SD_INSTALL_TEMP_DIR}/content/thingies/blue/lac.txt"));
+        assertFalse("Dispenser does not contain Windows path separators", dispenser.contains("content\\thingies\\blue\\lac.txt"));
+    }
 
 }

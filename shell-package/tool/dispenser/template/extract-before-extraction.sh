@@ -31,12 +31,14 @@ trap "mdu_install_clean_all" EXIT
 if [ ${MDU_SD_USE_PERSISTENT_TEMP_DIRECTORY} -eq 1 ] ; then
 	
 
-	if [ -d "x${MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY}" ] ; then
+	if [ -d "${MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY}" ] ; then
 		mdu_sd_execute_dispense "${@}"
 		exit $?
 	fi
 
-	mkdir "${MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY}"
+	if ! mkdir "${MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY}" 2>/dev/null ; then
+		[ -d "${MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY}" ] || exit 1
+	fi
 fi
 
 

@@ -116,6 +116,40 @@ public class Launcher extends AbstractShellPackagePluginFunctionalTest {
     }
 
     @Test
+    public void addLauncherWithContentDirectoryEnvironmentProperty() throws IOException, InterruptedException {
+        createProjectFile("launcher.sh", "echo \"${SBS_HOME_DIR}\"\n");
+        createProjectFile("settings.gradle", "");
+        createProjectFile("build.gradle",
+        """
+        plugins {
+            id('shell-package')
+        }
+
+        shell_package {
+            name = "foobar"
+            source {
+                from ("launcher.sh") {
+                    into "."
+                }
+            }
+            launcher {
+                script "launcher.sh"
+                environment([
+                    'SBS_HOME_DIR': '{{MDU-SD_CONTENT-DIRECTORY}}'
+                ])
+            }
+        }
+        """);
+
+        buildWithArguments("dispenser");
+
+        final ExecutorAndResult execution = executeLauncherMocked("foobar.sh", "launch");
+        assertEquals("script exited with 0", 0, execution.result);
+        assertTrue("Launcher receives the extracted content directory", execution.executor.grabbedOutput().contains("content"));
+        assertEquals("Stderr output of the launcher script is empty", "", execution.executor.grabbedError());
+    }
+
+    @Test
     public void addLauncherWithMissingReactorScript() throws IOException {
         copyProjectDirectory("foobar-project", "script", "script");
 

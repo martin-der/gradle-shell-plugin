@@ -44,6 +44,42 @@ public class TemporaryDirectory extends AbstractShellPackagePluginFunctionalTest
     }
 
     @Test
+    public void reuseExistingPersistentTempDirectory() throws IOException, InterruptedException {
+        copyProjectDirectory("foobar-project", "script", "script");
+
+        createProjectFile("settings.gradle", "");
+        createProjectFile("build.gradle",
+        """
+        plugins {
+            id('shell-package')
+        }
+
+        shell_package {
+            name = "foobar"
+            source {
+                from ("script") {
+                    include "**/*.sh"
+                    into "bin"
+                }
+            }
+            launcher {
+                script "bin/reactor.sh"
+            }
+        }
+        """);
+
+        buildWithArguments("dispenser");
+
+        final ExecutorAndResult firstExecution = executeLauncherMocked("foobar.sh", "launch");
+        assertEquals("first launcher execution succeeded", 0, firstExecution.result);
+        assertEquals("first launcher execution has no stderr output", "", firstExecution.executor.grabbedError());
+
+        final ExecutorAndResult secondExecution = executeLauncherMocked("foobar.sh", "launch");
+        assertEquals("reused temporary directory execution succeeded", 0, secondExecution.result);
+        assertEquals("reused temporary directory execution has no stderr output", "", secondExecution.executor.grabbedError());
+    }
+
+    @Test
     public void withoutPersistentTempDirectory () throws IOException {
 
 
