@@ -70,16 +70,17 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 		final Path sourceDirectoryPath = sourceDirectory.toPath();
 		for (Path absolutePath : toIterable(Files.walk(sourceDirectoryPath).filter(Files::isRegularFile).iterator())) {
 			final Path path = sourceDirectoryPath.relativize(absolutePath);
+			final String pathString = path.toString().replace(File.separatorChar, '/');
 			write("#\n");
-			write("# File "+path.toString()+"\n");
+			write("# File "+pathString+"\n");
 			write("#\n");
 
 			write("\n");
 
-			final String absoluteEscapedPath = "${MDU_SD_INSTALL_TEMP_DIR}/"+shellEscapedString(path.toString());
+			final String absoluteEscapedPath = "${MDU_SD_INSTALL_TEMP_DIR}/"+shellEscapedString(pathString);
 
 			if (path.getNameCount()>1) {
-				final String escapedParentPath = shellEscapedString(path.getParent().toString());
+				final String escapedParentPath = shellEscapedString(path.getParent().toString().replace(File.separatorChar, '/'));
 				write("mkdir -p \"${MDU_SD_INSTALL_TEMP_DIR}/"+escapedParentPath+"\"\n");
 			}
 
