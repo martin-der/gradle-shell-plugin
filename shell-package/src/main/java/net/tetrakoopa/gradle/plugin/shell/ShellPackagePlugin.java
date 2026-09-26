@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import net.tetrakoopa.gradle.ShellEscaper;
-import net.tetrakoopa.gradle.plugin.exception.ShellPackagePluginException;
 import net.tetrakoopa.gradle.plugin.shell.ShellPluginExtension.MultiActionModeStrategy;
 import net.tetrakoopa.gradle.plugin.shell.ShellPluginExtension.TextFileSource;
 import net.tetrakoopa.gradle.plugin.task.DispenserTask;
@@ -115,6 +114,10 @@ public class ShellPackagePlugin implements Plugin<Project> {
             dispenser.getProjectName().set(projectNameProvider);
             dispenser.getProjectLabel().set(project.provider(() -> extension.getLabel().orElse(projectNameProvider).get()));
             dispenser.getProjectVersion().set(project.provider(() -> extension.getVersion().getOrNull()));
+            dispenser.getDistributionName().set(project.provider(() -> extension.getDistributionName().getOrNull()));
+            dispenser.getMakeExecutable().set(project.provider(() -> extension.getInstaller().isMakeExecutable()));
+            dispenser.getContentDirectory().set(contentDir);
+            dispenser.getSources().setFrom(contentDir);
             dispenser.getBanner().set(project.provider(() -> extension.getBanner() == null ? null
                 : project.getLayout().getBuildDirectory().file(RESOURCE_PATH_BANNER).get()));
             dispenser.getReadme().set(project.provider(() -> extension.getInstaller().readme == null ? null
@@ -142,22 +145,9 @@ public class ShellPackagePlugin implements Plugin<Project> {
         buildProvider.get().dependsOn(dispenserTask);
 
         project.afterEvaluate(p -> {
-            postEvaluateSanityCheck(extension);
+            extension.validate();
         });
 
-    }
-
-    /**
-     * Checks that need the whole build script, and so cannot run while it is still being evaluated.
-     */
-    private static void postEvaluateSanityCheck(ShellPluginExtension extension) {
-        if (extension.launcher != null) {
-            final ShellPluginExtension.Launcher launcher = extension.launcher;
-            if (launcher.getScript() == null || launcher.getScript().isEmpty()) {
-                throw new ShellPackagePluginException(
-                    "If a launcher is requested then a path to a the script to execute is required with 'launcher.script'");
-            }
-        }
     }
 
     /**

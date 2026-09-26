@@ -182,8 +182,9 @@ public class Launcher extends AbstractShellPackagePluginFunctionalTest {
 
         assertTrue("", result.getOutput().contains("""
                 Execution failed for task ':dispenser'.
-                > Launcher script 'bin/reactor_doesn_t_exist.sh' does not exist
-                """));
+                > In shell_package > launcher > script : 'bin/reactor_doesn_t_exist.sh' is not a file in the packaged content. Check that it exists and that your 'source' block actually packages it. Searched in : """));
+        assertTrue("The message names the directory that was searched",
+            result.getOutput().contains(new File(projectDir, "build/shell/dispenser/exploded/content/bin").getPath()));
 
     }
 
