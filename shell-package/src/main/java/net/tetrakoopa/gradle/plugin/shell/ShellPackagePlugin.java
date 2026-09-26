@@ -1,12 +1,14 @@
 package net.tetrakoopa.gradle.plugin.shell;
 
 import java.io.File;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.UnaryOperator;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import net.tetrakoopa.gradle.ShellEscaper;
 import net.tetrakoopa.gradle.plugin.exception.ShellPackagePluginException;
 import net.tetrakoopa.gradle.plugin.shell.ShellPluginExtension.MultiActionModeStrategy;
+import net.tetrakoopa.gradle.plugin.shell.ShellPluginExtension.TextFileSource;
 import net.tetrakoopa.gradle.plugin.task.DispenserTask;
 import net.tetrakoopa.gradle.plugin.task.ShellPropertiesTask;
 import net.tetrakoopa.gradle.plugin.task.TextFileSourceTask;
@@ -18,9 +20,18 @@ import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Copy;
 import org.gradle.api.tasks.TaskProvider;
 
+/**
+ * Registers the whole task graph up front, so that a build script can configure any of the tasks
+ * with {@code tasks.named(...)} and so that {@code shell-build} wires itself correctly.
+ *
+ * <p>Tasks whose input is optional ({@code banner}, {@code readme}, {@code launcherProperties}) are
+ * registered unconditionally but guarded with {@code onlyIf}. Registering them in
+ * {@code afterEvaluate} instead — as this plugin used to — made them invisible to
+ * {@code tasks.named()} from the build script and forced eager realisation of every provider.
+ */
 public class ShellPackagePlugin implements Plugin<Project> {
 
- 	private static final String DOCUMENTATION_TASK_GROUP = "documentation";
+	private static final String DOCUMENTATION_TASK_GROUP = "documentation";
 	private static final String DISPENSER_TASK_GROUP = "shell";
 
 
@@ -39,10 +50,7 @@ public class ShellPackagePlugin implements Plugin<Project> {
 
     /** Shell variable the generated installer exports, holding the extraction directory. */
     private static final String CONTENT_DIRECTORY_REFERENCE = "${MDU_SD_DISPENSER_CONTENT_DIRECTORY}";
-    
 
-
-    private static final UnaryOperator<String> identityFunction = UnaryOperator.identity();
 
 
 
@@ -50,148 +58,132 @@ public class ShellPackagePlugin implements Plugin<Project> {
     public void apply(Project project) {
 
         final ShellPluginExtension extension = project.getExtensions().create(ShellPluginExtension.NAME, ShellPluginExtension.class);
-     
+
         final Internal internal = new Internal();
-        internal.workingDir = new File(project.getLayout().getBuildDirectory().get().getAsFile(), PLUGIN_WORK_FOLDER);
-        final File dispenserWorkingDir = new File(internal.workingDir, DISPENSER_WORK_FOLDER);
-        internal.dispenserWorkingDir = dispenserWorkingDir;
-        final File explodedDir = new File(dispenserWorkingDir, "exploded");
+        final File buildDirectory = project.getLayout().getBuildDirectory().get().getAsFile();
+        internal.workingDir = new File(buildDirectory, PLUGIN_WORK_FOLDER);
+        internal.dispenserWorkingDir = new File(internal.workingDir, DISPENSER_WORK_FOLDER);
+        final File explodedDir = new File(internal.dispenserWorkingDir, EXPLODED_WORK_FOLDER);
         internal.explodedPackageDir = explodedDir;
         final File contentDir = new File(explodedDir, "content");
         internal.contentDir = contentDir;
         final File resourceDir = new File(explodedDir, EXPLODED_RESOURCE_PATH);
         internal.resourceDir = resourceDir;
 
-        {
-            final TaskProvider<Copy> prepareSourcesTaskProvider = project.getTasks().register("prepareSources", Copy.class, copy -> {
-                copy.with(project.provider(() -> extension.getSource().get()).get());
-                copy.into(contentDir);
+        final TaskProvider<Copy> prepareSourcesTaskProvider = project.getTasks().register("prepareSources", Copy.class, copy -> {
+            copy.setGroup(DISPENSER_TASK_GROUP);
+            // The property always has a value (it defaults to project.copySpec() and the DSL mutates
+            // that very instance), so resolving it here is safe and picks up the user's 'from' clauses.
+            copy.with(extension.getSource().get());
+            copy.into(contentDir);
+        });
+        internal.task.prepareSources = prepareSourcesTaskProvider.get();
+
+        final TaskProvider<TextFileSourceTask> bannerTaskProvider =
+            registerTextFileTask(project, "banner", RESOURCE_PATH_BANNER,
+                () -> extension.getBanner() == null ? null : extension.getBanner().getSource(),
+                () -> extension.getBanner() == null ? null : extension.getBanner().getModify());
+
+        final TaskProvider<TextFileSourceTask> readmeTaskProvider =
+            registerTextFileTask(project, "readme", RESOURCE_PATH_README,
+                () -> extension.getInstaller().readme == null ? null : extension.getInstaller().readme.resolve(project),
+                () -> extension.getInstaller().readme == null ? null : extension.getInstaller().readme.getModify());
+
+        final TaskProvider<ShellPropertiesTask> launcherPropertiesTaskProvider =
+            project.getTasks().register("launcherProperties", ShellPropertiesTask.class, properties -> {
+                properties.setGroup(DISPENSER_TASK_GROUP);
+                // An empty environment is a legitimate value for @Input; onlyIf is what skips the
+                // task when the user asked for no launcher environment at all.
+                properties.onlyIf(spec -> !launcherEnvironment(extension).isEmpty());
+                properties.getEnvironment().set(project.provider(() -> {
+                    final Map<String, Object> rendered = new LinkedHashMap<>();
+                    launcherEnvironment(extension).forEach((key, value) -> rendered.put(key, renderShellValue(value)));
+                    return rendered;
+                }));
+                properties.getOutputFile().set(project.getLayout().getBuildDirectory().file(RESOURCE_PATH_LAUCNCHER_PROPERTIES));
+                properties.getExportvariables().set(true);
             });
-            internal.task.prepareSources = prepareSourcesTaskProvider.get();
-        }
 
         final TaskProvider<DispenserTask> dispenserTaskProvider = project.getTasks().register("dispenser", DispenserTask.class, dispenser -> {
-            final Provider<String> projectNameProvider = project.provider(() -> extension.getName().orElse(project.provider(() -> project.getName())).get());
-            dispenser.getMultiActionModeStrategy().set(project.provider(() -> extension.getAction().getMode()));
+            dispenser.setGroup(DISPENSER_TASK_GROUP);
+            final Provider<String> projectNameProvider =
+                project.provider(() -> extension.getName().orElse(project.provider(project::getName)).get());
+            dispenser.getMultiActionModeStrategy().set(project.provider(() ->
+                extension.getAction().getMode() == null
+                    ? MultiActionModeStrategy.ACTION_MODE_PREFIX
+                    : extension.getAction().getMode()));
             dispenser.getProjectName().set(projectNameProvider);
             dispenser.getProjectLabel().set(project.provider(() -> extension.getLabel().orElse(projectNameProvider).get()));
             dispenser.getProjectVersion().set(project.provider(() -> extension.getVersion().getOrNull()));
-            dispenser.getBanner().set(project.provider(() -> extension.getBanner() == null ? null : project.getLayout().getBuildDirectory().file(RESOURCE_PATH_BANNER).get()));
-            dispenser.getReadme().set(project.provider(() -> extension.getInstaller().readme == null ? null : project.getLayout().getBuildDirectory().file(RESOURCE_PATH_README).get()));
-            dispenser.getLauncherReactorScript().set(project.provider(() -> extension.getLauncher() == null ? null : extension.getLauncher().getScript()));
-            dispenser.getLauncherReactorEnvironment().set(project.provider(() -> extension.getLauncher() == null ? false : !extension.getLauncher().getEnvironment().isEmpty()));
-            dispenser.getUsePersistentTemporaryDirectory().set(project.provider(() -> extension.isKeepTemporaryDirectory()));
+            dispenser.getBanner().set(project.provider(() -> extension.getBanner() == null ? null
+                : project.getLayout().getBuildDirectory().file(RESOURCE_PATH_BANNER).get()));
+            dispenser.getReadme().set(project.provider(() -> extension.getInstaller().readme == null ? null
+                : project.getLayout().getBuildDirectory().file(RESOURCE_PATH_README).get()));
+            dispenser.getLauncherReactorScript().set(project.provider(() -> extension.getLauncher() == null ? null
+                : extension.getLauncher().getScript()));
+            dispenser.getLauncherReactorEnvironment().set(project.provider(() ->
+                extension.getLauncher() != null && !extension.getLauncher().getEnvironment().isEmpty()));
+            dispenser.getUsePersistentTemporaryDirectory().set(project.provider(extension::isKeepTemporaryDirectory));
         });
         final DispenserTask dispenserTask = internal.task.dispenserTask = dispenserTaskProvider.get();
 
-        dispenserTask.setGroup(DISPENSER_TASK_GROUP);
         dispenserTask.dependsOn(internal.task.prepareSources);
-        internal.task.dispenserTask = dispenserTask;
+        dispenserTask.dependsOn(bannerTaskProvider);
+        dispenserTask.dependsOn(readmeTaskProvider);
+        dispenserTask.dependsOn(launcherPropertiesTaskProvider);
+        internal.task.prepareBanner = bannerTaskProvider.get();
+        internal.task.prepareReadme = readmeTaskProvider.get();
+        internal.task.prepareLauncherProperties = launcherPropertiesTaskProvider.get();
 
-
-        final TaskProvider<Task> buildProvider = project.getTasks().register("shell-build", Task.class);
-        final Task buildTask = buildProvider.get();
-        buildTask.setGroup(DISPENSER_TASK_GROUP);
-        buildTask.dependsOn(dispenserTask);
-        
+        final TaskProvider<Task> buildProvider = project.getTasks().register("shell-build", Task.class, task -> {
+            task.setGroup(DISPENSER_TASK_GROUP);
+            task.setDescription("Builds the self-extracting shell package");
+        });
+        buildProvider.get().dependsOn(dispenserTask);
 
         project.afterEvaluate(p -> {
             postEvaluateSanityCheck(extension);
-            addTasks(project, extension, internal);
         });
 
     }
 
-    private void addTasks(Project project, ShellPluginExtension extension, Internal internal) {
-
-        internal.workingDir = new File(project.getLayout().getBuildDirectory().get().getAsFile(), "shell");
-
-        if (extension.getDistributionName() != null) {
-            internal.name = extension.getDistributionName().getOrNull();
-        } else if (extension.getName().isPresent()) {
-            internal.name = extension.getName().get();
-        } else {
-            internal.name = project.getName();
-        }
-
-        {
-            if (extension.getBanner() != null) {
-                final TaskProvider<TextFileSourceTask> prepareSourcesTaskProvider = project.getTasks().register("banner", TextFileSourceTask.class, banner -> {
-                    banner.modify(project.provider(() -> {
-                        final var modify = extension.getBanner().getModify();
-                        return modify == null ? identityFunction : modify;
-                    }).get());
-                    banner.getSourceFile().set(project.provider(() -> extension.getBanner().getSource()).get());
-                    banner.getDestinationFile().set(project.provider(() -> project.getLayout().getBuildDirectory().file(RESOURCE_PATH_BANNER)).get());
-
-                });
-                internal.task.prepareBanner = prepareSourcesTaskProvider.get();
-                internal.task.prepareBanner.setGroup(DISPENSER_TASK_GROUP);
-                internal.task.dispenserTask.dependsOn(internal.task.prepareBanner);
-            }
-        }
-        {
-            if (extension.getInstaller().readme != null) {
-                final TaskProvider<TextFileSourceTask> prepareSourcesTaskProvider = project.getTasks().register("readme", TextFileSourceTask.class, readme -> {
-                    readme.modify(project.provider(() -> {
-                        final var modify = extension.getInstaller().readme.getModify();
-                        return modify == null ? identityFunction : modify;
-                    }).get());
-                    readme.getSourceFile().set(project.provider(() -> extension.getInstaller().readme.resolve(project)).get());
-                    readme.getDestinationFile().set(project.provider(() -> project.getLayout().getBuildDirectory().file(RESOURCE_PATH_README)).get());
-
-                });
-                final var task = prepareSourcesTaskProvider.get();
-                task.setGroup(DISPENSER_TASK_GROUP);
-                internal.task.dispenserTask.dependsOn(task);
-            }
-        }
-        {
-            if (extension.getLauncher() != null) {
-                final var launcher = extension.getLauncher();
-                if (!launcher.getEnvironment().isEmpty()) {
-                    final TaskProvider<ShellPropertiesTask> prepareLauncherPropertiesTaskProvider = project.getTasks().register("launcherProperties", ShellPropertiesTask.class, properties -> {
-                        properties.getEnvironment().set(project.provider(() -> {
-                            final Map<String, Object> replacedMap = new HashMap<String, Object>();
-                            extension.getLauncher().getEnvironment().forEach((key, value) -> {
-                                replacedMap.put(key, renderShellValue(value));
-                            });
-                            return replacedMap;
-                        }).get());
-                        properties.getOutputFile().set(project.provider(() -> project.getLayout().getBuildDirectory().file(RESOURCE_PATH_LAUCNCHER_PROPERTIES)).get());
-                        properties.getExportvariables().set(true);
-
-                    });
-                    internal.task.prepareLauncherProperties = prepareLauncherPropertiesTaskProvider.get();
-                    internal.task.prepareLauncherProperties.setGroup(DISPENSER_TASK_GROUP);
-                    internal.task.dispenserTask.dependsOn(internal.task.prepareLauncherProperties);
-                }
-            }
-        }
-
-    }
-
-    private void postEvaluateSanityCheck(ShellPluginExtension extension) {
+    /**
+     * Checks that need the whole build script, and so cannot run while it is still being evaluated.
+     */
+    private static void postEvaluateSanityCheck(ShellPluginExtension extension) {
         if (extension.launcher != null) {
             final ShellPluginExtension.Launcher launcher = extension.launcher;
             if (launcher.getScript() == null || launcher.getScript().isEmpty()) {
-                throw new ShellPackagePluginException("If a launcher is requested then a path to a the script to execute is required with 'launcher.script'");
+                throw new ShellPackagePluginException(
+                    "If a launcher is requested then a path to a the script to execute is required with 'launcher.script'");
             }
-        }
-
-        final var action = extension.getAction();
-        if (action.getMode() == null) {
-            action.setMode(MultiActionModeStrategy.ACTION_MODE_PREFIX.getCode());
         }
     }
 
-    private void postackageCreationSanityCheck(ShellPluginExtension extension, Internal internal) {
-        if (extension.launcher != null) {
-            final ShellPluginExtension.Launcher launcher = extension.launcher;
-            if (!new File(internal.contentDir, launcher.getScript()).exists()) {
-                throw new ShellPackagePluginException("No such script '"+extension.launcher.getScript()+"', specified as launcher, is packaged");
-            }
-        }
+    /**
+     * Registers a {@code source -> destination} text task that only runs when the user actually
+     * configured that piece of content.
+     */
+    private TaskProvider<TextFileSourceTask> registerTextFileTask(
+        Project project,
+        String taskName,
+        String destinationPath,
+        Supplier<File> source,
+        Supplier<Function<String, String>> modify) {
+
+        return project.getTasks().register(taskName, TextFileSourceTask.class, task -> {
+            task.setGroup(DISPENSER_TASK_GROUP);
+            task.onlyIf(spec -> source.get() != null);
+            task.getSourceFile().set(project.getLayout().file(project.provider(source::get)));
+            task.getDestinationFile().set(project.getLayout().getBuildDirectory().file(destinationPath));
+            task.modify(project.provider(modify::get));
+            task.getTransformationDescription().set(
+                project.provider(() -> TextFileSourceTask.describe(modify.get())));
+        });
+    }
+
+    private static Map<String, String> launcherEnvironment(ShellPluginExtension extension) {
+        return extension.getLauncher() == null ? Map.of() : extension.getLauncher().getEnvironment();
     }
 
     /**
@@ -236,6 +228,6 @@ public class ShellPackagePlugin implements Plugin<Project> {
         }
         return rendered.toString();
     }
-    
+
 
 }
