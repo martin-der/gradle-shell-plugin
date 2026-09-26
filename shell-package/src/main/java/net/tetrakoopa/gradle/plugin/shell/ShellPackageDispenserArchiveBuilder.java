@@ -16,6 +16,7 @@ import lombok.Cleanup;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.tetrakoopa.gradle.ShellEscaper;
 import net.tetrakoopa.gradle.SystemUtil;
 
 @Getter @Setter
@@ -47,13 +48,13 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 
 		write("\n\n");
 
-		insertProperty("MDU_SD_INSTALL_APPLICATION_LABEL", "\""+(applicationName == null?"":applicationName)+"\"");
-		insertProperty("MDU_SD_INSTALL_APPLICATION_NAME", "\""+(applicationName == null?"":applicationName)+"\"");
-		insertProperty("MDU_SD_INSTALL_APPLICATION_VERSION", "\""+(applicationVersion == null?"":applicationVersion)+"\"");
+		insertProperty("MDU_SD_INSTALL_APPLICATION_LABEL", applicationName);
+		insertProperty("MDU_SD_INSTALL_APPLICATION_NAME", applicationName);
+		insertProperty("MDU_SD_INSTALL_APPLICATION_VERSION", applicationVersion);
 		if (usePersistentTempFolder) {
-			insertProperty(VARIABLE_PERSISTENT_TEMP_FOLDER, "\"mdu-shell-dispenser__"
+			insertProperty(VARIABLE_PERSISTENT_TEMP_FOLDER, "mdu-shell-dispenser__"
 			+(applicationName==null?UNKNOWN_APPLICATION_NAME:applicationName)
-			+(applicationVersion==null?"":("__"+applicationVersion))+"__"+UUID.randomUUID().toString()+"\"");
+			+(applicationVersion==null?"":("__"+applicationVersion))+"__"+UUID.randomUUID().toString());
 		}
 
 		write("\n\n");
@@ -119,9 +120,9 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 	}
 
 	private String shellEscapedString(String string) {
-		// TODO escape single qquote et carriage return
-		return string;
-	} 
+		// Paths land inside a double-quoted shell word, so only these five characters are special.
+		return ShellEscaper.escapeForDoubleQuotes(string);
+	}
 
 	private boolean isText(Path file) throws IOException {
 		@Cleanup

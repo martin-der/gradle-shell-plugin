@@ -174,6 +174,24 @@ public class AbstractShellPackagePluginFunctionalTest {
         }
     }
 
+    /**
+     * Mirrors how the dispenser renders a value into a generated script.
+     *
+     * <p>This cannot be a direct call to {@code net.tetrakoopa.gradle.ShellEscaper}: the main
+     * source set is not on the {@code functionalTest} compile classpath (this source set vendors its
+     * own copies of {@code SystemUtil} and {@code IOUtil} rather than shadowing them), so importing
+     * plugin classes here would need the build to put the main output on the test classpath and would
+     * duplicate every one of those classes. {@code ShellEscaperTest} pins the production rule down so
+     * the two cannot drift apart silently.
+     */
+    private static String asRenderedInScript(String value) {
+        return (value != null && !value.isEmpty() && SAFE_UNQUOTED.matcher(value).matches())
+            ? value
+            : "'" + value.replace("'", "'\\''") + "'";
+    }
+
+    private static final Pattern SAFE_UNQUOTED = Pattern.compile("[A-Za-z0-9_@%+=:,./^-]+");
+
     protected boolean grepVariableInMainScript(String name_suffix, int value) throws IOException {
         return grepVariableInMainScript(name_suffix, String.valueOf(value), "i");
     }
@@ -182,7 +200,7 @@ public class AbstractShellPackagePluginFunctionalTest {
     }
     protected boolean grepVariableInMainScript(String name_suffix, String value, String typeArg) throws IOException {
         final String main_script_sh = getMainScriptSh();
-        return main_script_sh.contains("\n"+"declare -r"+typeArg+" MDU_SD_"+name_suffix+"="+value+"\n");
+        return main_script_sh.contains("\n"+"declare -r"+typeArg+" MDU_SD_"+name_suffix+"="+asRenderedInScript(value)+"\n");
     }
     protected boolean noGrepVariableInMainScript(String name_suffix) throws IOException {
         final String main_script_sh = getMainScriptSh();
@@ -191,6 +209,11 @@ public class AbstractShellPackagePluginFunctionalTest {
     protected boolean rgrepVariableInMainScript(String name_suffix, String valueRegex) throws IOException {
         return rgrepVariableInMainScript(name_suffix, valueRegex, "");
     }
+    /**
+     * @param valueRegex a regular expression matched against the <em>quoted</em> value, so it must
+     *                   be written in terms of the rendered form (e.g. {@code .*} still matches a
+     *                   value that the dispenser decides to single-quote)
+     */
     protected boolean rgrepVariableInMainScript(String name_suffix, String valueRegex, String typeArg) throws IOException {
         final String main_script_sh = getMainScriptSh();
         return Pattern.compile("\n"+"declare -r"+typeArg+" MDU_SD_"+name_suffix+"="+valueRegex+"\n").matcher(main_script_sh).find();
@@ -210,10 +233,10 @@ public class AbstractShellPackagePluginFunctionalTest {
     protected boolean grepVariableInDispenser(String name_suffix, String value) throws IOException {
         return grepVariableInDispenser(name_suffix, value, "");
     }
-    protected boolean grepVariableInDispenser(String name_suffix, String value, String typeArg) throws IOException {
-        final String dispenser_sh = getDispenseSh();
-        return dispenser_sh.contains("\n"+"declare -r"+typeArg+" mdu_sp_"+name_suffix+"="+value+"\n");
-    }
+	protected boolean grepVariableInDispenser(String name_suffix, String value, String typeArg) throws IOException {
+		final String dispenser_sh = getDispenseSh();
+		return dispenser_sh.contains("\n"+"declare -r"+typeArg+" mdu_sp_"+name_suffix+"="+asRenderedInScript(value)+"\n");
+	}
 
     private String getDispenseSh() throws IOException {
         if (testData.dispenser_sh == null) {

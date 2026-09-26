@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.UnaryOperator;
+import net.tetrakoopa.gradle.ShellEscaper;
 import net.tetrakoopa.gradle.plugin.exception.ShellPackagePluginException;
 import net.tetrakoopa.gradle.plugin.shell.ShellPluginExtension.MultiActionModeStrategy;
 import net.tetrakoopa.gradle.plugin.task.DispenserTask;
@@ -32,6 +33,12 @@ public class ShellPackagePlugin implements Plugin<Project> {
     private static final String RESOURCE_PATH_BANNER = ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+EXPLODED_RESOURCE_PATH+File.separator+"banner.txt";
     private static final String RESOURCE_PATH_LAUCNCHER_PROPERTIES = ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+EXPLODED_RESOURCE_PATH+File.separator+"launcher-properties.sh";
     private static final String RESOURCE_PATH_README = ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+EXPLODED_RESOURCE_PATH+File.separator+"readme.txt";
+
+    /** Substituted by the user in a launcher environment value; see {@link #renderShellValue}. */
+    static final String CONTENT_DIRECTORY_PLACEHOLDER = "{{MDU-SD_CONTENT-DIRECTORY}}";
+
+    /** Shell variable the generated installer exports, holding the extraction directory. */
+    private static final String CONTENT_DIRECTORY_REFERENCE = "${MDU_SD_DISPENSER_CONTENT_DIRECTORY}";
     
 
 
@@ -147,7 +154,7 @@ public class ShellPackagePlugin implements Plugin<Project> {
                         properties.getEnvironment().set(project.provider(() -> {
                             final Map<String, Object> replacedMap = new HashMap<String, Object>();
                             extension.getLauncher().getEnvironment().forEach((key, value) -> {
-                                replacedMap.put(key, replaceValues(value, internal));
+                                replacedMap.put(key, renderShellValue(value));
                             });
                             return replacedMap;
                         }).get());
@@ -187,9 +194,47 @@ public class ShellPackagePlugin implements Plugin<Project> {
         }
     }
 
-    private String replaceValues(String string, Internal internal) {
-        return string
-            .replace("{{MDU-SD_CONTENT-DIRECTORY}}", "${MDU_SD_DISPENSER_CONTENT_DIRECTORY}");
+    /**
+     * Renders a launcher environment value as a single shell word.
+     *
+     * <p>The result is written verbatim into a file the generated installer {@code source}s, so it
+     * has to satisfy two opposing requirements:
+     *
+     * <ul>
+     * <li>arbitrary user text must be inert — a value such as {@code "a; rm -rf /"} or
+     *     {@code "Foo Bar"} must not split into several words or inject a command, so it is
+     *     single-quoted;</li>
+     * <li>{@value #CONTENT_DIRECTORY_PLACEHOLDER} has to expand to the extraction directory,
+     *     which only exists at run time, so the reference substituted for it must be
+     *     <em>double</em>-quoted.</li>
+     * </ul>
+     *
+     * <p>Both are met by quoting each literal segment on its own and emitting the substituted
+     * reference as a double-quoted word between them: adjacent quoted words concatenate in bash, so
+     * {@code 'a'"$HOME"'b'} is a single word with the value {@code a$HOMEb}. A value that is exactly
+     * the placeholder therefore renders as {@code "${MDU_SD_DISPENSER_CONTENT_DIRECTORY}"}, and a
+     * value that does not mention it is byte-for-byte what {@link ShellEscaper#quote} produces.
+     *
+     * <p>Keys and values are checked in {@code ShellPluginExtension#validate()} before we get here.
+     */
+    static String renderShellValue(String value) {
+        if (value == null) {
+            return null;
+        }
+        final StringBuilder rendered = new StringBuilder(value.length() + 8);
+        int from = 0;
+        int placeholder;
+        while ((placeholder = value.indexOf(CONTENT_DIRECTORY_PLACEHOLDER, from)) >= 0) {
+            if (placeholder > from) {
+                rendered.append(ShellEscaper.quote(value.substring(from, placeholder)));
+            }
+            rendered.append("\"").append(CONTENT_DIRECTORY_REFERENCE).append("\"");
+            from = placeholder + CONTENT_DIRECTORY_PLACEHOLDER.length();
+        }
+        if (from < value.length()) {
+            rendered.append(ShellEscaper.quote(value.substring(from)));
+        }
+        return rendered.toString();
     }
     
 

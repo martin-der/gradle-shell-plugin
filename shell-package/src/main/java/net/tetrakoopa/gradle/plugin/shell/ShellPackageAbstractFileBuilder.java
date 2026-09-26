@@ -11,6 +11,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 import lombok.Cleanup;
+import net.tetrakoopa.gradle.ShellEscaper;
 import net.tetrakoopa.gradle.SystemUtil;
 
 public abstract class ShellPackageAbstractFileBuilder implements Closeable {
@@ -56,12 +57,19 @@ public abstract class ShellPackageAbstractFileBuilder implements Closeable {
 		insertProperty(propertyName, propertyValue, null);
 	}
 
+	/**
+	 * Declares a read-only shell variable holding {@code propertyValue}.
+	 *
+	 * <p>This is the single place where user-supplied text becomes shell code, so it is also the
+	 * single place where quoting happens. Passing an already-quoted value (for instance by
+	 * wrapping it in double quotes yourself) will double-quote it; pass the raw value instead.
+	 */
 	protected void insertProperty(String propertyName, String propertyValue, String extraOption) throws IOException {
 		write("declare -r"+(extraOption != null ? extraOption : "")+" "+propertyName+"=");
 		if (propertyValue == null || propertyValue.isBlank())
 			write("\n");
 		else
-			write(propertyValue.trim()+"\n");
+			write(ShellEscaper.quote(propertyValue.trim())+"\n");
 	}
 
 	protected void makeExecutable(boolean b, boolean c) throws IOException {

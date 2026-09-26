@@ -40,7 +40,7 @@ public class TemporaryDirectory extends AbstractShellPackagePluginFunctionalTest
         buildWithArguments("dispenser");
 
 
-        assertTrue("Variable 'MDU_SD_PERSISTENT_TEMP_FOLDER' holds correct package name by default", rgrepVariableInMainScript("PERSISTENT_TEMP_FOLDER","\"mdu-shell-dispenser__foobar__.*\""));
+        assertTrue("Variable 'MDU_SD_PERSISTENT_TEMP_FOLDER' holds correct package name by default", rgrepVariableInMainScript("PERSISTENT_TEMP_FOLDER","mdu-shell-dispenser__foobar__.*"));
     }
 
     @Test
