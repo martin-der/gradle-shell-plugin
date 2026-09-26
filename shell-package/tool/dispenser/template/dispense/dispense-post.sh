@@ -169,15 +169,11 @@ show_readme() {
 }
 
 execute_user_script() {
-	if [ ${mdu_sp_execute_user_script} -eq 0 ]; then
-		return 0
-	fi
-	sh "${mdu_sp_user_script}"
-	local result=$?
-	if [ $result -ne 0 ] ; then
-		log_error "Failed to execute post-installation script. It exited with ${result}"
-	fi
-	return $?
+	# Post-installation scripts are not implemented by this version of the plugin: the
+	# 'installer.userScript' DSL block is rejected at configuration time rather than silently
+	# ignored, so there is no script to run here.
+	log_debug "No post-installation script configured"
+	return 0
 }
 
 # ---------------------------

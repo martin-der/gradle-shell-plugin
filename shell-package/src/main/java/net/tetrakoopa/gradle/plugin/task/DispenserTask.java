@@ -123,7 +123,6 @@ public abstract class DispenserTask extends DefaultTask {
                 .actionModeStrategy(getMultiActionModeStrategy().get())
                 .showBanner(getBanner().isPresent())
                 .showReadme(getReadme().isPresent())
-                .executeUserScript(getPostInstallScript().isPresent())
                 .launcherScript(getLauncherReactorScript().getOrNull())
                 .launcherScriptHasEnvironmentProperties(getLauncherReactorEnvironment().getOrElse(false));
             builder.build();

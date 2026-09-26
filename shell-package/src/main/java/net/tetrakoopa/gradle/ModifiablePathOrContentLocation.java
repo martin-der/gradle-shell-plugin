@@ -27,6 +27,12 @@ public interface ModifiablePathOrContentLocation extends PathOrContentLocation {
 
 		private Function<String, String> modify;
 
+		@Override
+		public ModifiablePathOrContentLocation.Default forWhat(String forWhat) {
+			super.forWhat(forWhat);
+			return this;
+		}
+
 		public void modify(Function<String, String> closure) {
 			modify = closure;
 		}
