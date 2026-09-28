@@ -1,10 +1,11 @@
 package net.tetrakoopa.gradle.plugin.exception;
 
-public class EmptyPathAndLocationException extends RuntimeException {
+public class EmptyPathAndLocationException extends ShellPackagePluginException {
 	public EmptyPathAndLocationException() {
 		this(null);
 	}
 	public EmptyPathAndLocationException(String forWhat) {
-		super("Both a part and a location have been provided"+(forWhat!=null?(" for "+forWhat):""));
+		super("Neither 'path' nor 'location' was provided"+(forWhat!=null?(" for "+forWhat):"")
+			+". Provide exactly one of them.");
 	}
 }

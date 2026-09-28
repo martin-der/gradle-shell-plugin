@@ -18,7 +18,6 @@ public class ShellPackageDispenserExecutorBuilder extends ShellPackageAbstractFi
 	private ShellPluginExtension.MultiActionModeStrategy actionModeStrategy = null;
 	private boolean showReadme;
 	private boolean showBanner;
-	private boolean executeUserScript;
 	private String launcherScript;
 	private boolean launcherScriptHasEnvironmentProperties;
 
@@ -62,7 +61,6 @@ public class ShellPackageDispenserExecutorBuilder extends ShellPackageAbstractFi
 		insertProperty("mdu_sp_action_mode_strategy", actionModeStrategy.name());
 		insertProperty("mdu_sp_show_readme", showReadme );
 		insertProperty("mdu_sp_show_banner", showBanner);
-		insertProperty("mdu_sp_execute_user_script", executeUserScript);
 		insertProperty("mdu_sp_executable_reactor_script", launcherScript);
 		insertProperty("mdu_sp_executable_has_environment_properties", launcherScriptHasEnvironmentProperties);
 

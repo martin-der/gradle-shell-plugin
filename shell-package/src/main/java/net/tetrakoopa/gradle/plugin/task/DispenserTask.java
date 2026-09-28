@@ -5,23 +5,26 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
-import java.util.Set;
+
 import javax.inject.Inject;
 
 import org.gradle.api.DefaultTask;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 
 import lombok.Cleanup;
+
 import net.tetrakoopa.gradle.SystemUtil;
 import net.tetrakoopa.gradle.plugin.shell.ResourceUtil;
 import net.tetrakoopa.gradle.plugin.shell.ShellPackageDispenserArchiveBuilder;
@@ -41,8 +44,8 @@ public abstract class DispenserTask extends DefaultTask {
 	@Input
 	public abstract Property<String> getProjectLabel();
 
-    @Input @Optional
-	public abstract Property<String> getAuthor();
+	@Input @Optional
+	public abstract Property<String> getDistributionName();
 
     @InputFile @Optional
 	public abstract RegularFileProperty getBanner();
@@ -56,14 +59,21 @@ public abstract class DispenserTask extends DefaultTask {
 	@InputFiles
 	public abstract ConfigurableFileCollection getSources();
 
-    @Input @Optional
+	/**
+	 * Directory the {@code source} copy task fills. Only used to report an actionable error when it
+	 * ends up empty, which cannot be detected any earlier.
+	 */
+	@Internal
+	public abstract DirectoryProperty getContentDirectory();
+
+	@Input @Optional
 	public abstract Property<String> getLauncherReactorScript();
 
-    @Input @Optional
+	@Input @Optional
 	public abstract Property<Boolean> getLauncherReactorEnvironment();
 
-    @InputFile @Optional
-	public abstract RegularFileProperty getPostInstallScript();
+	@Input
+	public abstract Property<Boolean> getMakeExecutable();
 
 	@OutputFile
 	public abstract RegularFileProperty getExecutorTarget();
@@ -71,7 +81,7 @@ public abstract class DispenserTask extends DefaultTask {
     @OutputFile
 	public abstract RegularFileProperty getTarget();
 
-    @Input @Optional
+	@Input @Optional
 	public abstract Property<Boolean> getUsePersistentTemporaryDirectory();
 
 	private static final String DISPENSE_FILENAME = "dispense.sh";
@@ -79,6 +89,9 @@ public abstract class DispenserTask extends DefaultTask {
 	@Inject
 	public DispenserTask() {
 		getProjectName().convention(getProject().getName());
+		getProjectLabel().convention(getProjectName());
+		getMultiActionModeStrategy().convention(ShellPluginExtension.MultiActionModeStrategy.ACTION_MODE_PREFIX);
+		getMakeExecutable().convention(true);
 		getExecutorTarget().convention(getProject().getLayout().getBuildDirectory().file(ShellPackagePlugin.EXPLODED_WORK_PATH+File.separator+DISPENSE_FILENAME));
 		getTarget().convention(() 
             -> getProject().getLayout().getBuildDirectory().file(ShellPackagePlugin.PLUGIN_WORK_FOLDER+"/"+ShellPackagePlugin.DISPENSER_WORK_FOLDER+"/"+buildArchiveFileName()+".sh")
@@ -96,26 +109,32 @@ public abstract class DispenserTask extends DefaultTask {
         final File explodedWorkFile = getProject().getLayout().getBuildDirectory().file(ShellPackagePlugin.EXPLODED_WORK_PATH).get().getAsFile();
         final File contentExplodedDirectory = new File(explodedWorkFile, "content");
 
+        requireNonEmptyContent(contentExplodedDirectory);
+
         try {
             copyScriptUtils(explodedWorkFile);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to copy runtime util scripts : "+e.getMessage(), e);
+            throw new InvalidUserDataException("Failed to copy runtime util scripts : "+e.getMessage(), e);
         }
 
         if (getLauncherReactorScript().isPresent()) {
             final String reactorPath = getLauncherReactorScript().get();
             final File reactor = new File(contentExplodedDirectory, reactorPath);
-            if (! reactor.exists()) {
-                throw new InvalidUserDataException("Launcher script '"+reactorPath+"' does not exist");
+            if (! reactor.isFile()) {
+                throw new InvalidUserDataException(
+                    "In shell_package > launcher > script : '"+reactorPath+"' is not a file in the packaged "
+                    + "content. Check that it exists and that your 'source' block actually packages it"
+                    + (reactorPath.contains("\\") ? " (note the Windows path separator: use '/')" : "")
+                    + ". Searched in : "+reactor.getParent());
             }
             try {
                 SystemUtil.makeExecutable(reactor, false, false);
             } catch (IOException e) {
-                throw new RuntimeException("Failed to make '"+reactor.getAbsolutePath()+"' : "+e.getMessage(), e);
+                throw new InvalidUserDataException("Failed to make '"+reactor.getAbsolutePath()+"' executable : "+e.getMessage(), e);
             }
         }
 
-        try (ShellPackageDispenserExecutorBuilder builder = new ShellPackageDispenserExecutorBuilder(getExecutorTarget().get().getAsFile() /* getProjectName().get() *//* , extension */)) {
+        try (ShellPackageDispenserExecutorBuilder builder = new ShellPackageDispenserExecutorBuilder(dispenserFile)) {
             builder
                 .packageName(getProjectName().get())
                 .label(getProjectLabel().get())
@@ -123,28 +142,49 @@ public abstract class DispenserTask extends DefaultTask {
                 .actionModeStrategy(getMultiActionModeStrategy().get())
                 .showBanner(getBanner().isPresent())
                 .showReadme(getReadme().isPresent())
-                .executeUserScript(getPostInstallScript().isPresent())
                 .launcherScript(getLauncherReactorScript().getOrNull())
                 .launcherScriptHasEnvironmentProperties(getLauncherReactorEnvironment().getOrElse(false));
             builder.build();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to create dispense script : "+e.getMessage(), e);
+            throw new InvalidUserDataException("Failed to create dispense script : "+e.getMessage(), e);
         }
 
         final File archiveFile = getTarget().get().getAsFile();
         try (ShellPackageDispenserArchiveBuilder builder = new ShellPackageDispenserArchiveBuilder(explodedWorkFile, archiveFile)) {
-            builder.makeExecutable(true);
+            builder.makeExecutable(getMakeExecutable().getOrElse(true));
             builder.applicationName(getProjectName().get());
             builder.applicationVersion(getProjectVersion().getOrNull());
             builder.usePersistentTempFolder(getUsePersistentTemporaryDirectory().getOrElse(true));
             builder.build();
     		getLogger().lifecycle("Created archive file '{}'", archiveFile.getAbsolutePath());
         } catch (IOException e) {
-            throw new RuntimeException("Failed to create archive : "+e.getMessage(), e);
+            throw new InvalidUserDataException("Failed to create archive : "+e.getMessage(), e);
         }
 
 
 	}
+
+    /**
+     * Refuses to build a package that contains nothing.
+     *
+     * <p>Gradle's {@code Copy} task treats a {@code from} path that does not exist, or an
+     * {@code include} pattern that matches nothing, as a successful no-op. The archive is then
+     * produced with no {@code content} directory at all, and the only symptom the user ever sees is
+     * a "No file to install" message from the generated installer, long after the Gradle build that
+     * supposedly succeeded. Failing here keeps the error next to the configuration that caused it.
+     */
+    private void requireNonEmptyContent(File contentDirectory) {
+        final File[] entries = contentDirectory.listFiles();
+        if (entries != null && entries.length > 0) {
+            return;
+        }
+        throw new InvalidUserDataException(
+            "In shell_package > source : no file was selected for packaging, so the generated archive would "
+            + "be empty and unable to install anything.\n"
+            + "  Check that every 'from' path exists and that your 'include'/'exclude' patterns match at "
+            + "least one file.\n"
+            + "  Content directory searched : " + contentDirectory);
+    }
 
     public void target(Provider<File> provider) {
         getExecutorTarget().fileProvider(provider);
@@ -156,7 +196,10 @@ public abstract class DispenserTask extends DefaultTask {
 
     private String buildArchiveFileName() {
         final StringBuilder builder = new StringBuilder();
-        builder.append(getProjectName().get());
+        // 'distributionName' is precisely "the name of the artifact I distribute", so it wins over
+        // 'name' when present; previously it was assigned to a field nothing ever read.
+        final String archiveBaseName = getDistributionName().getOrElse(getProjectName().get());
+        builder.append(archiveBaseName);
         if (getProjectVersion().isPresent()) {
             builder
                 .append("-")

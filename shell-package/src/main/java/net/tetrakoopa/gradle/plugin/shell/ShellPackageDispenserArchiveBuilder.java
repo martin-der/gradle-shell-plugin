@@ -16,6 +16,7 @@ import lombok.Cleanup;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import net.tetrakoopa.gradle.ShellEscaper;
 import net.tetrakoopa.gradle.SystemUtil;
 
 @Getter @Setter
@@ -35,6 +36,9 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 	
 	private static final String UNKNOWN_APPLICATION_NAME = "unknown";
 	private static final String VARIABLE_PERSISTENT_TEMP_FOLDER = "MDU_SD_PERSISTENT_TEMP_FOLDER";
+
+	/** Terminator of the heredocs used to inline file content in the generated archive. */
+	private static final String HEREDOC_TERMINATOR = "MDU_SD_EOF";
 	
 	public ShellPackageDispenserArchiveBuilder(File sourceDirectory, File targetFile) throws FileNotFoundException {
 		super(targetFile);
@@ -47,13 +51,13 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 
 		write("\n\n");
 
-		insertProperty("MDU_SD_INSTALL_APPLICATION_LABEL", "\""+(applicationName == null?"":applicationName)+"\"");
-		insertProperty("MDU_SD_INSTALL_APPLICATION_NAME", "\""+(applicationName == null?"":applicationName)+"\"");
-		insertProperty("MDU_SD_INSTALL_APPLICATION_VERSION", "\""+(applicationVersion == null?"":applicationVersion)+"\"");
+		insertProperty("MDU_SD_INSTALL_APPLICATION_LABEL", applicationName);
+		insertProperty("MDU_SD_INSTALL_APPLICATION_NAME", applicationName);
+		insertProperty("MDU_SD_INSTALL_APPLICATION_VERSION", applicationVersion);
 		if (usePersistentTempFolder) {
-			insertProperty(VARIABLE_PERSISTENT_TEMP_FOLDER, "\"mdu-shell-dispenser__"
+			insertProperty(VARIABLE_PERSISTENT_TEMP_FOLDER, "mdu-shell-dispenser__"
 			+(applicationName==null?UNKNOWN_APPLICATION_NAME:applicationName)
-			+(applicationVersion==null?"":("__"+applicationVersion))+"__"+UUID.randomUUID().toString()+"\"");
+			+(applicationVersion==null?"":("__"+applicationVersion))+"__"+UUID.randomUUID().toString());
 		}
 
 		write("\n\n");
@@ -84,7 +88,7 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 				write("mkdir -p \"${MDU_SD_INSTALL_TEMP_DIR}/"+escapedParentPath+"\"\n");
 			}
 
-			if (isText(absolutePath)) {
+			if (canBeInlinedAsText(absolutePath)) {
 				write("sed 's/^X //' << 'MDU_SD_EOF' > \""+absoluteEscapedPath+"\"\n");
 				try (Stream<String> stream = Files.lines(absolutePath)) {
 						for (String l : toIterable(stream.iterator())) {
@@ -119,11 +123,29 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 	}
 
 	private String shellEscapedString(String string) {
-		// TODO escape single qquote et carriage return
-		return string;
-	} 
+		// Paths land inside a double-quoted shell word, so only these five characters are special.
+		return ShellEscaper.escapeForDoubleQuotes(string);
+	}
 
-	private boolean isText(Path file) throws IOException {
+	/**
+	 * Decides whether a file can be embedded in the archive as readable text.
+	 *
+	 * <p>Text is inlined verbatim between {@code << 'MDU_SD_EOF'} and {@code MDU_SD_EOF}, which is
+	 * far nicer to debug than base64 but has two requirements: the file must not contain bytes that
+	 * would make the generated script misparse, and it must not contain a line equal to the heredoc
+	 * terminator. A file violating the second rule is silently truncated at that line and the rest of
+	 * the payload leaks into the script body, so such files are base64-encoded instead.
+	 */
+	private boolean canBeInlinedAsText(Path file) throws IOException {
+		if (!isText(file)) {
+			return false;
+		}
+		try (Stream<String> lines = Files.lines(file)) {
+			return lines.noneMatch(HEREDOC_TERMINATOR::equals);
+		}
+	}
+
+	private static boolean isText(Path file) throws IOException {
 		@Cleanup
 		final InputStream input = Files.newInputStream(file);
 		final byte[] buffer = new byte[1000];
