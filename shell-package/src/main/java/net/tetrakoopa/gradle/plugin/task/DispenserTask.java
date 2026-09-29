@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -26,6 +28,7 @@ import org.gradle.api.tasks.TaskAction;
 import lombok.Cleanup;
 
 import net.tetrakoopa.gradle.SystemUtil;
+import net.tetrakoopa.gradle.plugin.shell.FileModeRegistry;
 import net.tetrakoopa.gradle.plugin.shell.ResourceUtil;
 import net.tetrakoopa.gradle.plugin.shell.ShellPackageDispenserArchiveBuilder;
 import net.tetrakoopa.gradle.plugin.shell.ShellPackageDispenserExecutorBuilder;
@@ -109,6 +112,11 @@ public abstract class DispenserTask extends DefaultTask {
         final File explodedWorkFile = getProject().getLayout().getBuildDirectory().file(ShellPackagePlugin.EXPLODED_WORK_PATH).get().getAsFile();
         final File contentExplodedDirectory = new File(explodedWorkFile, "content");
 
+        // On Windows the filesystem cannot store Unix permission bits, so the modes of the files the
+        // plugin generates itself are recorded here and re-applied when building the archive. On a
+        // real POSIX system the modes stay on the files and are simply read back from there.
+        final Map<String, Integer> recordedModes = new LinkedHashMap<String, Integer>();
+
         requireNonEmptyContent(contentExplodedDirectory);
 
         try {
@@ -129,6 +137,9 @@ public abstract class DispenserTask extends DefaultTask {
             }
             try {
                 SystemUtil.makeExecutable(reactor, false, false);
+                if (SystemUtil.isWindows()) {
+                    recordedModes.put("content/"+reactorPath.replace('\\', '/'), SystemUtil.executableMode(reactor, false, false));
+                }
             } catch (IOException e) {
                 throw new InvalidUserDataException("Failed to make '"+reactor.getAbsolutePath()+"' executable : "+e.getMessage(), e);
             }
@@ -145,8 +156,19 @@ public abstract class DispenserTask extends DefaultTask {
                 .launcherScript(getLauncherReactorScript().getOrNull())
                 .launcherScriptHasEnvironmentProperties(getLauncherReactorEnvironment().getOrElse(false));
             builder.build();
+            if (SystemUtil.isWindows()) {
+                recordedModes.put(DISPENSE_FILENAME, SystemUtil.executableMode(dispenserFile, true, false));
+            }
         } catch (IOException e) {
             throw new InvalidUserDataException("Failed to create dispense script : "+e.getMessage(), e);
+        }
+
+        if (SystemUtil.isWindows()) {
+            try {
+                FileModeRegistry.write(FileModeRegistry.registryFileFor(explodedWorkFile), recordedModes);
+            } catch (IOException e) {
+                throw new InvalidUserDataException("Failed to record modes in '"+FileModeRegistry.registryFileFor(explodedWorkFile).getAbsolutePath()+"' : "+e.getMessage(), e);
+            }
         }
 
         final File archiveFile = getTarget().get().getAsFile();

@@ -7,7 +7,9 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -46,6 +48,12 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 	}
 
 	public void build() throws IOException {
+
+		// The recorder file is a Windows-only fallback : it carries the modes the dispenser could
+		// not store on the filesystem. On a POSIX build the filesystem is authoritative.
+		final Map<String, Integer> recordedFileModes = SystemUtil.isWindows()
+			? FileModeRegistry.read(FileModeRegistry.registryFileFor(sourceDirectory))
+			: Collections.emptyMap();
 
 		writeClassPathResource("/template/extract-pre.sh");
 
@@ -106,7 +114,7 @@ public class ShellPackageDispenserArchiveBuilder extends ShellPackageAbstractFil
 				write("\nMDU_SD_EOF\n");
 			}
 			write("\n");
-			final int fileMode = SystemUtil.getPermissions(absolutePath);
+			final int fileMode = recordedFileModes.getOrDefault(pathString, SystemUtil.getPermissions(absolutePath));
 			write(String.format("""
 					chmod %03o "%s" || {
 						log_warning "Failed to set permission %03o to file '%s'"

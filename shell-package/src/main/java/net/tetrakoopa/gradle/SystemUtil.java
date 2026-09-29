@@ -62,6 +62,28 @@ public class SystemUtil {
 		}
 	}
 
+	/**
+	 * Returns the mode the given file must have in the generated archive given that
+	 * {@link #makeExecutable makeExecutable(file, toGroup, toOther)} has been (or is meant to be)
+	 * called on it.
+	 *
+	 * <p>On a POSIX system the executable bits are already set on the file itself, so this is just its
+	 * current mode. On Windows the filesystem cannot store permissions and {@link #getPermissions}
+	 * always reports 0644, so this folds the executable bits that {@code makeExecutable} would have
+	 * set into that default : the result is then the mode the file <em>intends</em> to have.</p>
+	 */
+	public static int executableMode(File file, boolean toGroup, boolean toOther) throws IOException {
+		int mode = getPermissions(file.toPath());
+		mode |= 0100;
+		if (toGroup) {
+			mode |= 0010;
+		}
+		if (toOther) {
+			mode |= 0001;
+		}
+		return mode;
+	}
+
 	public static int getPermissions(Path path) throws IOException {
 		if (isWindows()) {
 			warnWindowsPermissionsDefaults();
