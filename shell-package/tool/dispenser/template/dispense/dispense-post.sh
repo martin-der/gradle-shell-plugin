@@ -182,16 +182,9 @@ execute_user_script() {
 
 # Offers the application a place to keep data that must outlive a single run, by exporting
 # MDU_SD_CACHE_DIRECTORY.
-#
-# Only the launch path gets one. An installer has no application running, and scripts that end up
-# installed would otherwise be handed a path inside a directory the installer is about to delete.
 prepare_user_cache_directory() {
 	export MDU_SD_CACHE_DIRECTORY="${MDU_SD_INSTALL_TEMP_DIR}/user_cache"
 
-	# 'mkdir -p' is a no-op on an existing directory and leaves its content untouched, which is what
-	# makes this safe to call on every launch. When the temp directory is persistent -- the one that
-	# keeps its 'keep-directory' lock -- the first launch creates the cache and every later launch
-	# finds it already there, so the application keeps whatever it cached between runs.
 	if ! mkdir -p "${MDU_SD_CACHE_DIRECTORY}" ; then
 		log_error "Failed to create the launcher cache directory '${MDU_SD_CACHE_DIRECTORY}'"
 		exit 1

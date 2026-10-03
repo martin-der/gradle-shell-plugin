@@ -24,7 +24,7 @@ buildscript{
 
 ### 📦 Packagem
 
-#### Setup
+#### 🔧 Setup
 
 Apply the plugin :
 
@@ -92,6 +92,11 @@ Indicate a script that can be used as main to make the package executable
 		]
 	}
 ```
+#### 📃 Environment variables
+
+| Name | Where | Explanation |
+|------|-------|-------------|
+| MDU_SD_CACHE_DIRECTORY | Launcher | This folder is available to be used a cache directory |
 
 #### 💻 Usage
 
