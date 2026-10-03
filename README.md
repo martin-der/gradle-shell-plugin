@@ -22,7 +22,7 @@ buildscript{
 }
 ```
 
-### 📦 Packagem
+### 📦 Package
 
 #### 🔧 Setup
 
