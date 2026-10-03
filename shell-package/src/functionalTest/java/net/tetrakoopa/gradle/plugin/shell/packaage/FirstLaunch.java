@@ -1,7 +1,10 @@
 package net.tetrakoopa.gradle.plugin.shell.packaage;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 
 import org.junit.Test;
@@ -32,21 +35,30 @@ public class FirstLaunch extends AbstractShellPackagePluginFunctionalTest {
     }
 
     /**
-     * The flag reports on the persistent temp directory, not on launches specifically: installing is
-     * what brings that directory into existence, so a launch following an install is a launch onto
-     * an already prepared package.
+     * An install is not a launch, and does not leave the package half-prepared for one: having done
+     * its job it takes its own directory back, so the next launch starts from nothing just as the
+     * very first one did.
+     *
+     * <p>Getting there means actually completing an install. An install that is interrupted partway
+     * keeps its directory, so it would leave the following launch reporting 0 -- which says nothing
+     * about a user who installs normally.
      */
     @Test
-    public void aLaunchAfterAnInstallIsNotAFirstLaunch() throws IOException, InterruptedException {
+    public void aLaunchAfterAnInstallIsAFirstLaunch() throws IOException, InterruptedException {
         createProjectWithLauncher();
 
         buildWithArguments("dispenser");
 
-        // Installing is interactive and this only needs the directory to have been created, which the
-        // package does before the installer ever prompts. Hitting end of input aborts the installer.
-        executeLauncherMocked(closingStdin(), "foobar.sh", "install");
+        final File installTarget = new File(buildDir(), "installed");
+        final ExecutorAndResult install = executeLauncherMocked(
+            answering("3\n" + installTarget.getAbsolutePath() + "\n"), "foobar.sh", "install");
+        assertEquals("the install completed", 0, install.result);
+        assertTrue("the launcher was installed",
+            new File(installTarget, "launcher.sh").isFile());
 
-        assertEquals("the launch that follows an install is not a first launch", "0", launchAndReadFlag());
+        assertEquals("and the package took its own directory back", 0, persistentTempDirectories().length);
+
+        assertEquals("so the launch that follows an install is a first launch", "1", launchAndReadFlag());
     }
 
     /**
@@ -119,13 +131,28 @@ public class FirstLaunch extends AbstractShellPackagePluginFunctionalTest {
         """.formatted(extraConfiguration));
     }
 
-    /** An executor whose stdin is immediately at end of file. */
-    private static Consumer<OutputStream> closingStdin() {
+    /**
+     * The directory the package extracts itself into, which is also what it uses to decide whether
+     * an earlier run has been here.
+     */
+    private File[] persistentTempDirectories() {
+        final File[] candidates = new File(buildDir(), "root/tmp").listFiles(
+            (dir, name) -> name.startsWith("mdu-shell-dispenser__foobar__") && new File(dir, name).isDirectory());
+        return candidates == null ? new File[0] : candidates;
+    }
+
+    /**
+     * Answers the installer's prompts. The third location offered is "a custom location...", which
+     * takes the next line as a directory -- one inside this test's own build directory, rather than
+     * the real {@code $HOME/bin} the earlier choices point at.
+     */
+    private static Consumer<OutputStream> answering(String answers) {
         return stdin -> {
             try {
-                stdin.close();
+                stdin.write(answers.getBytes(StandardCharsets.UTF_8));
+                stdin.flush();
             } catch (IOException e) {
-                throw new java.io.UncheckedIOException(e);
+                throw new UncheckedIOException(e);
             }
         };
     }
