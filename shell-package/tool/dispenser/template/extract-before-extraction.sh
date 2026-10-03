@@ -14,6 +14,20 @@ fi
 
 declare -r MDU_SD_PERSISTENT_TEMP_DIRECTORY_KEEP_LOCK="${MDU_SD_INSTALL_TEMP_DIR}/keep-directory"
 
+# Whether the persistent temp directory is already there, or is about to be created by this very run,
+# is what tells a first launch from every later one: that directory is what the package leaves
+# behind between two runs (holding its 'keep-directory' lock), so finding it in place means some
+# earlier run has already been here. This has to be settled before the mkdir further down.
+#
+# Without persistence there is no earlier run to compare against -- every run extracts into a fresh
+# directory that is discarded on exit -- so every run is a first launch as far as anything the
+# launcher can observe.
+if [ ${MDU_SD_USE_PERSISTENT_TEMP_DIRECTORY} -eq 1 ] && [ -d "${MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY}" ] ; then
+	declare -ri MDU_SD_FIRST_LAUNCH=0
+else
+	declare -ri MDU_SD_FIRST_LAUNCH=1
+fi
+
 mdu_install_clean_all() {
 	if [ ${MDU_SD_USE_PERSISTENT_TEMP_DIRECTORY} -eq 1 ] ; then
 		if [ ! -f "${MDU_SD_PERSISTENT_TEMP_DIRECTORY_KEEP_LOCK}" ]; then
