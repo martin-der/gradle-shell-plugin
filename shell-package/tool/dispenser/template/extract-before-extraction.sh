@@ -5,9 +5,22 @@ if [ "x${MDU_SD_PERSISTENT_TEMP_FOLDER:-}" != "x" ] ; then
 	declare -r ROOT_TEMP_DIRECTORY="$(dirname "$(mktemp -u)")"
 	declare -r MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY="${ROOT_TEMP_DIRECTORY}/${MDU_SD_PERSISTENT_TEMP_FOLDER}"
 
+	# The persistent temp directory is what the package leaves behind between two runs, so finding
+	# it already there means an earlier run has been here. Settled here, before the mkdir further
+	# down that would create it.
+	if [ -d "${MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY}" ] ; then
+		declare -ri MDU_SD_FIRST_LAUNCH=0
+	else
+		declare -ri MDU_SD_FIRST_LAUNCH=1
+	fi
+
 	MDU_SD_INSTALL_TEMP_DIR=${MDU_SD_ABSOLUTE_PERSISTENT_TEMP_DIRECTORY}
 else
 	declare -r MDU_SD_USE_PERSISTENT_TEMP_DIRECTORY=0
+
+	# Nothing survives a run without a persistent directory, so there is no earlier run to compare
+	# against and every run is a first launch as far as anything can observe.
+	declare -ri MDU_SD_FIRST_LAUNCH=1
 
 	MDU_SD_INSTALL_TEMP_DIR=`mktemp -d mdu-sp-dispenser.XXXXXXXXXXXXXXXXXXXX` || exit 1
 fi
