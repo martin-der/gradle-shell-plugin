@@ -97,6 +97,11 @@ Indicate a script that can be used as main to make the package executable
 | Name | Where | Explanation |
 |------|-------|-------------|
 | MDU_SD_CACHE_DIRECTORY | Launcher | This folder is available to be used a cache directory |
+| MDU_SD_FIRST_LAUNCH | Launcher | `1` when this launch is the first one, `0` when an earlier launch already ran |
+
+`MDU_SD_FIRST_LAUNCH` is decided on whether the package has to extract itself into place, so it
+resets to `1` after an `install` (the installed copy is all that is kept from then on), and stays
+`1` for every launch when `keepTemporaryDirectory` is `false`, since nothing survives a run.
 
 #### 💻 Usage
 
