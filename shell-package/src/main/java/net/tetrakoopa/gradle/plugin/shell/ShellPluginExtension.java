@@ -55,6 +55,10 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 	/** Bash identifiers only: the launcher environment file is {@code source}d at runtime. */
 	private static final Pattern SHELL_IDENTIFIER = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*\\z");
 
+	/** The two first parameters the generated package understands. */
+	public static final String ACTION_INSTALL = "install";
+	public static final String ACTION_LAUNCH = "launch";
+
 	@Getter
 	public enum MultiActionModeStrategy {
 		ACTION_MODE_PREFIX("action-mode-prefix"),
@@ -88,11 +92,54 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		private MultiActionModeStrategy mode;
 		private ShellCallback desambiguation;
 
+		/**
+		 * Action the generated package performs when no first parameter names one, {@code null}
+		 * when the {@code action} block does not ask for a default.
+		 *
+		 * <p>Validated by {@link ShellPluginExtension#validate()} : the shell template can only
+		 * ever write {@value ShellPluginExtension#ACTION_INSTALL} or
+		 * {@value ShellPluginExtension#ACTION_LAUNCH} into the package.
+		 */
+		private String defaultAction;
+
+		/**
+		 * Whether the build script wrote an {@code action { … }} block at all.
+		 *
+		 * <p>An {@code action} block without a {@code default} changes nothing about the generated
+		 * package, so it is warned about — but only when the block was actually written; the
+		 * extension always holds a {@link MultiAction} instance, even for a build script that
+		 * never mentions {@code action}.
+		 */
+		private boolean configured;
+
 		public void setMode(String label) {
+			configured = true;
 			mode = MultiActionModeStrategy.byCode(label);
 		}
 		public void setMode(MultiActionModeStrategy mode) {
+			configured = true;
 			this.mode = mode;
+		}
+
+		/** DSL form : {@code action { defaultAction 'launch' }}. */
+		void defaultAction(String value) {
+			declareDefaultAction(value);
+		}
+
+		/** Property form : {@code action { defaultAction = 'launch' }}. */
+		void setDefaultAction(String value) {
+			declareDefaultAction(value);
+		}
+
+		/**
+		 * Also the entry point of the {@code action(default: 'launch')} shorthand, which is how
+		 * the requested spelling survives Groovy's grammar : {@code default} is a reserved word,
+		 * so {@code action { default = 'launch' }} and {@code action { default: 'launch' }} are
+		 * parse errors, while a named-argument map happily uses it as a key.
+		 */
+		void declareDefaultAction(String value) {
+			configured = true;
+			this.defaultAction = value;
 		}
 
 		/**
@@ -284,8 +331,38 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 		unsupportedOptions.add(optionPath);
 	}
 
-	void action(Closure<MultiAction> closure) { 
+	void action(Closure<MultiAction> closure) {
+		action.configured = true;
 		ConfigureUtil.configure(closure, action);
+	}
+
+	/**
+	 * Named-argument shorthand for the block form : {@code action(default: 'launch')}.
+	 *
+	 * <p>This is the only way to spell the option with the very name {@code default}, because
+	 * Groovy reserves that word : inside a {@code shell_package { … }} closure both
+	 * {@code action { default = 'launch' }} and {@code action { default: 'launch' }} fail to
+	 * parse, while a map key is not an identifier and parses fine.
+	 */
+	void action(Map<String, Object> arguments) {
+		if (arguments == null || arguments.isEmpty()) {
+			action.configured = true;
+			return;
+		}
+		for (Map.Entry<String, Object> option : arguments.entrySet()) {
+			if (!"default".equals(option.getKey()) && !"defaultAction".equals(option.getKey())) {
+				throw new InvalidPluginConfigurationException(configurationPath("action"),
+					"Unknown option '"+option.getKey()+"', expected 'default' (as in "
+					+ "action(default: '"+ACTION_LAUNCH+"')).");
+			}
+			final Object value = option.getValue();
+			if (value != null && !(value instanceof String)) {
+				throw new InvalidPluginConfigurationException(configurationPath("action", "default"),
+					"'"+value+"' ("+value.getClass().getSimpleName()+") is not an action this package knows, "
+					+ "expected '"+ACTION_LAUNCH+"' or '"+ACTION_INSTALL+"'.");
+			}
+			action.declareDefaultAction((String) value);
+		}
 	}
 
 	void source(Action<CopySpec> action) {
@@ -446,6 +523,28 @@ public class ShellPluginExtension implements InvalidPluginConfigurationException
 			problems.add("In shell_package > action : mode '"+MultiActionModeStrategy.DESAMBIGUATION_FUNCTION.getCode()
 				+"' is not implemented by this version of the plugin, the generated package ignores it. "
 				+ "Use mode '"+MultiActionModeStrategy.ACTION_MODE_PREFIX.getCode()+"'.");
+		}
+		if (!action.isConfigured()) {
+			return;
+		}
+
+		final String defaultAction = action.getDefaultAction();
+		if (defaultAction == null || defaultAction.isBlank()) {
+			// Not an error : the package still builds, it just keeps requiring 'install' or
+			// 'launch' as a first parameter, which is exactly what the block failed to change.
+			project.getLogger().warn("In shell_package > action : the block is configured but no 'default' is set, "
+				+ "so the generated package will still refuse to run without an explicit '"+ACTION_INSTALL+"' or '"
+				+ ACTION_LAUNCH+"' first parameter. Add e.g. action { defaultAction '"+ACTION_LAUNCH+"' }.");
+			return;
+		}
+		if (!ACTION_INSTALL.equals(defaultAction) && !ACTION_LAUNCH.equals(defaultAction)) {
+			problems.add("In shell_package > action > default : '"+defaultAction+"' is not an action this package "
+				+ "knows, expected '"+ACTION_LAUNCH+"' or '"+ACTION_INSTALL+"'.");
+			return;
+		}
+		if (ACTION_LAUNCH.equals(defaultAction) && launcher == null) {
+			problems.add("In shell_package > action > default : '"+ACTION_LAUNCH+"' cannot be the default of a "
+				+ "package without a 'launcher' block — there would be nothing to launch.");
 		}
 	}
 }

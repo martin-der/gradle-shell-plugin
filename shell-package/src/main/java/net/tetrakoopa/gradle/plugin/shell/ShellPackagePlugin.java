@@ -111,6 +111,10 @@ public class ShellPackagePlugin implements Plugin<Project> {
                 extension.getAction().getMode() == null
                     ? MultiActionModeStrategy.ACTION_MODE_PREFIX
                     : extension.getAction().getMode()));
+            dispenser.getDefaultAction().set(project.provider(() -> {
+                final String defaultAction = extension.getAction().getDefaultAction();
+                return defaultAction == null || defaultAction.isBlank() ? null : defaultAction;
+            }));
             dispenser.getProjectName().set(projectNameProvider);
             dispenser.getProjectLabel().set(project.provider(() -> extension.getLabel().orElse(projectNameProvider).get()));
             dispenser.getProjectVersion().set(project.provider(() -> extension.getVersion().getOrNull()));

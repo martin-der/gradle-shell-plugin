@@ -59,6 +59,13 @@ public abstract class DispenserTask extends DefaultTask {
     @Input
 	public abstract Property<ShellPluginExtension.MultiActionModeStrategy> getMultiActionModeStrategy();
 
+	/**
+	 * Action the generated package falls back to when its first parameter names none, empty when
+	 * the build script asked for no default.
+	 */
+	@Input @Optional
+	public abstract Property<String> getDefaultAction();
+
 	@InputFiles
 	public abstract ConfigurableFileCollection getSources();
 
@@ -151,6 +158,7 @@ public abstract class DispenserTask extends DefaultTask {
                 .label(getProjectLabel().get())
                 .packageVersion(getProjectVersion().getOrNull())
                 .actionModeStrategy(getMultiActionModeStrategy().get())
+                .defaultAction(getDefaultAction().getOrNull())
                 .showBanner(getBanner().isPresent())
                 .showReadme(getReadme().isPresent())
                 .launcherScript(getLauncherReactorScript().getOrNull())

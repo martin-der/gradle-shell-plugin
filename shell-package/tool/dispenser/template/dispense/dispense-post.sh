@@ -16,6 +16,9 @@ print_usage() {
 	[ ${has_launcher} -ne 0 ] && {
 		echo "  ${MDU_ROOT_EXECUTION_ARCHIVE} launch"
 	}
+	[ "x${mdu_sp_default_action}" != "x" ] && {
+		echo "  ${MDU_ROOT_EXECUTION_ARCHIVE}   (no first parameter : '${mdu_sp_default_action}')"
+	}
 	echo "  ${MDU_ROOT_EXECUTION_ARCHIVE} --help"
 }
 
@@ -38,6 +41,18 @@ shift || true
 	[ "x${argument_action_mode,,}" = "xlaunch" ] && {
 		action=LAUNCH
 	}
+}
+[ "x${action}" = "x" ] && [ "x${mdu_sp_default_action}" != "x" ] && {
+	case "${mdu_sp_default_action}" in
+		install)
+			action=INSTALL
+			;;
+		launch)
+			if [ ${has_launcher} -ne 0 ] ; then
+				action=LAUNCH
+			fi
+			;;
+	esac
 }
 
 

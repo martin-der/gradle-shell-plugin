@@ -16,6 +16,8 @@ public class ShellPackageDispenserExecutorBuilder extends ShellPackageAbstractFi
 	private String packageName = null;
 	private String packageVersion = null;
 	private ShellPluginExtension.MultiActionModeStrategy actionModeStrategy = null;
+	/** {@code 'launch'} / {@code 'install'}, or {@code null} when the package has no default. */
+	private String defaultAction = null;
 	private boolean showReadme;
 	private boolean showBanner;
 	private String launcherScript;
@@ -59,6 +61,7 @@ public class ShellPackageDispenserExecutorBuilder extends ShellPackageAbstractFi
 		insertProperty("mdu_sp_package_label", label);
 		insertProperty("mdu_sp_package_version", packageVersion);
 		insertProperty("mdu_sp_action_mode_strategy", actionModeStrategy.name());
+		insertProperty("mdu_sp_default_action", defaultAction);
 		insertProperty("mdu_sp_show_readme", showReadme );
 		insertProperty("mdu_sp_show_banner", showBanner);
 		insertProperty("mdu_sp_executable_reactor_script", launcherScript);

@@ -115,3 +115,35 @@ Or, if a `laucher` section is provided, package can be executed :
 ./my-package launch
 ```
 The script indicated by `launcher.script` with be executed.
+
+#### 🎯 Default action
+
+By default the package refuses to do anything until its first parameter says `install` or `launch`.
+An `action` block makes one of them the default, so that `./my-package` on its own is a request :
+
+```groovy
+shell_package {
+	...
+	action {
+		defaultAction 'launch'
+	}
+}
+```
+
+An explicit first parameter always wins : `./my-package install` installs even when the default is
+`launch`, and `./my-package launch` launches even when the default is `install`.
+
+The option is also available under its requested name through the named-argument shorthand —
+`default` being a reserved word in Groovy, `action { default = 'launch' }` does not even parse :
+
+```groovy
+shell_package {
+	...
+	action(default: 'launch')
+}
+```
+
+Only `'launch'` and `'install'` are accepted as a default, and `'launch'` requires a `launcher`
+section (there would be nothing to launch otherwise) ; the build fails otherwise. An `action`
+block written without any `default` changes nothing about the generated package, so it is warned
+about during the build.
